@@ -2,10 +2,11 @@ import datetime
 import json
 
 from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, \
-    QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar
+    QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget
 
-from DialogsWindow import LocationDialog, CloseByDialog, StatusDialog, CommentsDialog
-from ServiceOrderDB import ServiceOrderDB  # Assuming your ServiceOrderDB class is in a file named service_order_db.py
+from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog
+
+from ServiceOrderDB import ServiceOrderDB
 
 from TableWidget import SCMRTable
 from WindowsLayout import LayoutSettings
@@ -26,9 +27,6 @@ class MainWin(QMainWindow):
         # Create a QVBoxLayout
         main_layout = QVBoxLayout(central_widget)
 
-        # Create a QHBoxLayout for input box and delete button
-        input_delete_layout = QHBoxLayout()
-
         # Initialize the ServiceOrderDB
         self.db = ServiceOrderDB(status_bar=self.status_bar)
         self.db.create_table_users()
@@ -40,8 +38,10 @@ class MainWin(QMainWindow):
         input_delete_layout = QHBoxLayout()
 
         # Create a QVBoxLayout for input box
-        input_layout = QVBoxLayout()
+        input_layout = QHBoxLayout()
         self.input_box = QLineEdit()
+        self.input_label = QLabel("SO#")
+        input_layout.addWidget(self.input_label)
         input_layout.addWidget(self.input_box)
         self.input_box.returnPressed.connect(self.handle_scanner_input)
         input_delete_layout.addLayout(input_layout)
@@ -52,7 +52,6 @@ class MainWin(QMainWindow):
         delete_layout.addWidget(self.delete_button)
         self.delete_button.clicked.connect(self.delete_selected_entry)
         input_delete_layout.addLayout(delete_layout)
-
         # Add the QHBoxLayout to the QVBoxLayout
         main_layout.addLayout(input_delete_layout)
 
@@ -70,7 +69,7 @@ class MainWin(QMainWindow):
 
         service_order = self.table_widget.item(selected_row, 0).text()
         service_order_db = ServiceOrderDB()
-        service_order_db.delete_user(service_order,
+        service_order_db.delete_service_order(service_order,
                                      operator="Some Operator")  # Replace "Some Operator" with the actual operator
         self.table_widget.removeRow(selected_row)
         self.status_bar.showMessage("No entry selected for deletion")
@@ -80,8 +79,28 @@ class MainWin(QMainWindow):
         # Get the scanned input from the input box
         scanned_input = self.input_box.text()
 
-        # Process the scanned input
-        print(f"Scanned input: {scanned_input}")
+        existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
+        print(existing_service_order)
+        if existing_service_order:
+            # Show the "Checking Out" dialog
+            check_out_list = self.settings["Operators"]["CA"]
+            check_out_dialog = OperatorDialog(check_out_list)
+            if check_out_dialog.exec_():
+                check_out_by = check_out_list[check_out_dialog.button_group.checkedId()]
+
+                # Update the CheckOut value, CheckOutDate, and CheckOutBy in the database
+                self.db.update_checked_out(True, scanned_input, check_out_by)
+                self.db.update_check_out_date(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), scanned_input,
+                                              check_out_by)
+                self.db.update_check_out_by(check_out_by, scanned_input, check_out_by)
+
+                # Update the table
+                self.table_widget.load_data()
+
+                # Clear the input box
+                self.input_box.clear()
+                self.status_bar.showMessage(f"Checked out entry: {scanned_input}")
+                return
 
         # Location Dialog
         location_dialog = LocationDialog()
@@ -90,7 +109,7 @@ class MainWin(QMainWindow):
 
             # Close By Dialog
             close_by_list = self.settings["Operators"]["ARA"]
-            close_by_dialog = CloseByDialog(close_by_list)
+            close_by_dialog = OperatorDialog(close_by_list)
             if close_by_dialog.exec_():
                 close_by = close_by_list[close_by_dialog.button_group.checkedId()]
 
@@ -107,17 +126,17 @@ class MainWin(QMainWindow):
                         return
 
                     # Add the data to the database
-                    self.db.add_user(
+                    self.db.add_service_order(
                         ServiceOrder=int(scanned_input),
                         Location=location,
                         CompletionDate=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                         ClosedBy=close_by,
                         Status=status,
-                        Comments=comments,
+                        Comments=comments
                     )
 
                     # Update the table
-                    self.table_widget.update_data()
+                    self.table_widget.load_data()
 
         # Clear the input box
         self.input_box.clear()

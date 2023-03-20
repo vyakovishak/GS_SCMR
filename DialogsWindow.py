@@ -39,6 +39,21 @@ class CloseByDialog(QDialog):
         self.button_group.buttonClicked.connect(self.accept)
 
 
+class OperatorDialog(QDialog):
+    def __init__(self, close_by_list):
+        super().__init__()
+        self.resize(200, 150)
+        self.setWindowTitle("Select Close By")
+        layout = QGridLayout()
+        self.button_group = QButtonGroup()
+        for index, close_by in enumerate(close_by_list):
+            button = QPushButton(close_by)
+            self.button_group.addButton(button, index)
+            layout.addWidget(button, index // 2, index % 2)
+        self.setLayout(layout)
+        self.button_group.buttonClicked.connect(self.accept)
+
+
 class StatusDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -79,10 +94,10 @@ class CommentsDialog(QDialog):
         layout.addWidget(self.comments_input)
         layout.addWidget(self.submit_button)
         self.setLayout(layout)
-        print(status)
         if status == "YELLOW":
             self.submit_button.clicked.connect(self.validate_comments)
-        self.submit_button.clicked.connect(self.accept)
+        else:
+            self.submit_button.clicked.connect(self.accept)
 
     def validate_comments(self):
         if len(self.comments_input.text()) >= 10:
