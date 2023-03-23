@@ -27,7 +27,7 @@ class ServiceOrderDB:
             data = cursor.fetchone()
         if fetchall:
             data = cursor.fetchall()
-        #connection.close()
+        connection.close()
 
         return data
 
@@ -167,6 +167,7 @@ class ServiceOrderDB:
             "operation": operation,
             "parameters": kwargs
         }
+        print(log_entry)
         log_entry_json = json.dumps(log_entry)
 
         with open("update_log.json", "a") as log_file:

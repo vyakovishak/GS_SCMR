@@ -1,9 +1,11 @@
 from PySide6 import QtWidgets
-from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHeaderView, QDialog, QVBoxLayout, QLabel, QItemDelegate
+from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHeaderView, QDialog, QVBoxLayout, QLabel, \
+    QItemDelegate
 from PySide6.QtWidgets import QItemDelegate, QComboBox, QDialog, QVBoxLayout, QListWidget
 from DialogsWindow import OperatorDialog
 from ServiceOrderDB import ServiceOrderDB
-import MainWIndow
+import json
+
 
 class StatusDelegate(QItemDelegate):
     def __init__(self, parent=None):
@@ -28,18 +30,12 @@ class StatusDelegate(QItemDelegate):
         editor.setGeometry(option.rect)
 
     def show_operator_dialog(self):
-        operators = MainWIndow.MainWin.load_settings()
-        all_operators = operators["Operators"]["ARA"] + operators["Operators"]["CA"]
-
-        check_out_dialog = OperatorDialog([*set(all_operators)])
-        if check_out_dialog.exec_():
-            check_out_by = all_operators[check_out_dialog.button_group.checkedId()]
-            list_widget = QListWidget()
-            list_widget.addItems(check_out_by)
-            # Connect the itemClicked signal to a custom slot
-            list_widget.itemClicked.connect(self.on_operator_selected(check_out_by))
-
-            check_out_dialog.exec_()
+        check_out_by = OperatorDialog("ALL").get_operator()
+        list_widget = QListWidget()
+        list_widget.addItems(check_out_by)
+        # Connect the itemClicked signal to a custom slot
+        list_widget.itemClicked.connect(self.on_operator_selected(check_out_by))
+        check_out_dialog.exec_()
 
     def on_operator_selected(self, item):
         selected_operator = item
@@ -70,29 +66,27 @@ class SCMRTable(QTableWidget):
         self.load_data()
 
         # Connect the cellDoubleClicked signal to the custom function
-        self.cellChanged.connect(self.on_cell_changed)
+
         self.cellDoubleClicked.connect(self.show_full_comments)
 
+
+    @staticmethod
+    def load_settings():
+        with open("Settings.json", "r") as settings_file:
+            operators = json.load(settings_file)
+            all_operators = {
+                'ARA': operators["Operators"]["ARA"],
+                'CA': operators["Operators"]["CA"],
+                'ALL': [*set(operators["Operators"]["ARA"] + operators["Operators"]["CA"])]
+            }
+            return all_operators
+
     def on_cell_changed(self, row, column):
-        new_value = self.item(row, column).text()
-        service_order = self.item(row, 0).text()
-
-        # Update the database with the new value
-        # Replace the 'if' conditions with the corresponding column numbers
-        if column == 1:
-            self.db.update_location(new_value, service_order, list_widget.itemClicked)
-        elif column == 2:
-            self.db.update_completion_date(new_value, service_order, list_widget.itemClicked)
-        elif column == 3:
-            self.db.update_closed_by(new_value, service_order, list_widget.itemClicked)
-        elif column == 4:
-            self.db.update_status(new_value, service_order, list_widget.itemClicked)
-        elif column == 5:
-            self.db.update_comments(new_value, service_order, "test")
-        # Add other columns if needed
-
-        # Refresh the table to show the updated data
-        # self.load_data()
+        if column == 5:
+            check_out_dialog = OperatorDialog().get_operator()
+            new_value = self.item(row, column).text()
+            service_order = self.item(row, 0).text()
+            self.db.update_comments(new_value, service_order, check_out_dialog)
 
     def load_data(self):
         self.setRowCount(0)
@@ -116,17 +110,17 @@ class SCMRTable(QTableWidget):
 
     def show_full_comments(self, row, column):
         # Check if the double-clicked cell is in the "Comments" column
+
         if column == 5:
-            comments = self.item(row, column).text()
-
-            # Create a new QDialog to show the full comments
-            comments_dialog = QDialog(self)
-            comments_dialog.setWindowTitle("Full Comments")
-            comments_dialog.resize(150, 50)
-            layout = QVBoxLayout()
-            label = QLabel(comments)
-            layout.addWidget(label)
-            comments_dialog.setLayout(layout)
-
-            # Show the QDialog
-            comments_dialog.exec_()
+                comments = self.item(row, column).text()
+                # Create a new QDialog to show the full comments
+                comments_dialog = QDialog(self)
+                comments_dialog.setWindowTitle("Full Comments")
+                comments_dialog.resize(150, 50)
+                layout = QVBoxLayout()
+                label = QLabel(comments)
+                layout.addWidget(label)
+                comments_dialog.setLayout(layout)
+                self.cell_clicked_count = 0
+                # Show the QDialog
+                comments_dialog.exec_()
