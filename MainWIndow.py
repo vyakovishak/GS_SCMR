@@ -2,9 +2,12 @@ import datetime
 import json
 
 from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, \
-    QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget
+    QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget, QCalendarWidget, QGroupBox, QGridLayout, QCheckBox, \
+    QComboBox
 
-from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog
+from PySide6.QtGui import QIcon
+
+from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalenderTable
 
 from ServiceOrderDB import ServiceOrderDB
 
@@ -17,6 +20,7 @@ class MainWin(QMainWindow):
         super().__init__()
         self.resize(1080, 720)
         self.settings = self.load_settings()
+
         # Create a status bar
         self.status_bar = QStatusBar(self)
         self.setStatusBar(self.status_bar)
@@ -30,6 +34,11 @@ class MainWin(QMainWindow):
         # Initialize the ServiceOrderDB
         self.db = ServiceOrderDB(status_bar=self.status_bar)
         self.db.create_table_users()
+
+        #Create Icon button
+        calendar_icon = QIcon("calendar_icon.png")
+        calendar_button = QPushButton(calendar_icon, "")
+        calendar_button.clicked.connect(self.show_filter_dialog)
 
         # Create the SCMRTable
         self.table_widget = SCMRTable(self.db, )
@@ -49,6 +58,7 @@ class MainWin(QMainWindow):
         # Create a QVBoxLayout for delete button
         delete_layout = QVBoxLayout()
         self.delete_button = QPushButton("Delete")
+        delete_layout.addWidget(calendar_button)
         delete_layout.addWidget(self.delete_button)
         self.delete_button.clicked.connect(self.delete_selected_entry)
         input_delete_layout.addLayout(delete_layout)
@@ -69,8 +79,7 @@ class MainWin(QMainWindow):
 
         service_order = self.table_widget.item(selected_row, 0).text()
         service_order_db = ServiceOrderDB()
-        service_order_db.delete_service_order(service_order,
-                                     operator="Some Operator")  # Replace "Some Operator" with the actual operator
+        service_order_db.delete_service_order(service_order, operator="Some Operator")
         self.table_widget.removeRow(selected_row)
         self.status_bar.showMessage("No entry selected for deletion")
         self.status_bar.showMessage(f"Deleted entry: {service_order}")
@@ -141,3 +150,72 @@ class MainWin(QMainWindow):
         # Clear the input box
         self.input_box.clear()
         self.status_bar.showMessage(f"Added entry: {scanned_input}")
+
+    def show_filter_dialog(self):
+        filter_dialog = QDialog(self)
+        filter_dialog.setWindowTitle("Filter Service Orders")
+        filter_dialog.resize(400, 300)
+
+        layout = QVBoxLayout()
+
+        # Create the calendar widget
+        calendar = QCalendarWidget()
+        layout.addWidget(calendar)
+
+        # Create the filter options
+        filter_options = QGroupBox("Filter Options")
+        filter_layout = QGridLayout()
+
+        completion_date_checkbox = QCheckBox("Completion Date")
+        last_updated_checkbox = QCheckBox("Last Updated")
+        check_out_date_checkbox = QCheckBox("Check Out Date")
+
+        filter_layout.addWidget(completion_date_checkbox, 0, 0)
+        filter_layout.addWidget(last_updated_checkbox, 1, 0)
+        filter_layout.addWidget(check_out_date_checkbox, 2, 0)
+
+        checkout_checkbox = QCheckBox("Checkout")
+        closed_by_combobox = QComboBox()
+        closed_by_combobox.addItem()
+        checked_out_by_combobox = QComboBox()
+        checked_out_by_combobox.addItem("CA Operator 1")
+        checked_out_by_combobox.addItem("CA Operator 2")
+
+        status_combobox = QComboBox()
+        status_combobox.addItem("Yellow")
+        status_combobox.addItem("Green")
+
+        filter_layout.addWidget(checkout_checkbox, 0, 1)
+        filter_layout.addWidget(QLabel("Closed By:"), 1, 1)
+        filter_layout.addWidget(closed_by_combobox, 1, 2)
+        filter_layout.addWidget(QLabel("Checked Out By:"), 2, 1)
+        filter_layout.addWidget(checked_out_by_combobox, 2, 2)
+        filter_layout.addWidget(QLabel("Status:"), 3, 1)
+        filter_layout.addWidget(status_combobox, 3, 2)
+
+        filter_options.setLayout(filter_layout)
+
+        layout.addWidget(filter_options)
+
+        # Create apply and cancel buttons
+        button_layout = QHBoxLayout()
+        apply_button = QPushButton("Apply")
+        cancel_button = QPushButton("Cancel")
+        button_layout.addWidget(apply_button)
+        button_layout.addWidget(cancel_button)
+
+        layout.addLayout(button_layout)
+
+        # Connect apply and cancel buttons
+        apply_button.clicked.connect(filter_dialog.accept)
+        cancel_button.clicked.connect(filter_dialog.reject)
+
+        filter_dialog.setLayout(layout)
+
+        result = filter_dialog.exec_()
+
+        if result == QDialog.Accepted:
+            # Retrieve filter values and apply the filter
+            calendar_table = CalenderTable()
+
+

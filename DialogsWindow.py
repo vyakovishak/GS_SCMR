@@ -1,5 +1,5 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
-    QMessageBox, QHBoxLayout
+    QMessageBox, QHBoxLayout, QTableWidget
 
 
 class LocationDialog(QDialog):
@@ -52,6 +52,25 @@ class OperatorDialog(QDialog):
             layout.addWidget(button, index // 2, index % 2)
         self.setLayout(layout)
         self.button_group.buttonClicked.connect(self.accept)
+
+
+class CalenderTable(QTableWidget):
+    def __int__(self, table_data=None):
+        super().__int__()
+        self.resize(1080, 720)
+        self.setColumnCount(9)
+        self.setHorizontalHeaderLabels(
+            ["Service Order", "Location", "Completion Date", "Closed By", "Status", "Comments", "Last Updated",
+             "Updated By", ""])
+        self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        if table_data is not None:
+            for row_number, row_data in enumerate(table_data):
+                self.insertRow(row_number)
+                for column_number, data in enumerate(row_data):
+                    self.setItem(row_number, column_number, QTableWidgetItem(str(data)))
+        else:
+            print("The database is empty.")
 
 
 class StatusDialog(QDialog):

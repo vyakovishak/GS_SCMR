@@ -49,8 +49,8 @@ class StatusDelegate(QItemDelegate):
         service_order = ...
         new_status = ...
 
-        service_order_db.update_status(new_status, service_order, selected_operator)
-        service_order_db.log_update("Updated Status", so=service_order, operator=selected_operator, status=new_status)
+        self.db.update_status(new_status, service_order, selected_operator)
+        self.db.log_update("Updated Status", so=service_order, operator=selected_operator, status=new_status)
 
         self.parent().refresh_table()
         self.parent().parent().close()
