@@ -1,62 +1,18 @@
+# TableWidget.py
+
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHeaderView, QDialog, QVBoxLayout, QLabel, \
     QItemDelegate
 from PySide6.QtWidgets import QItemDelegate, QComboBox, QDialog, QVBoxLayout, QListWidget
-from DialogsWindow import OperatorDialog
+from DialogsWindow import OperatorDialog, ServiceOrderEditorDialog, load_settings
 from ServiceOrderDB import ServiceOrderDB
 import json
-
-
-class StatusDelegate(QItemDelegate):
-    def __init__(self, parent=None):
-        super(StatusDelegate, self).__init__(parent)
-
-    def createEditor(self, parent, option, index):
-        editor = QComboBox(parent)
-        editor.addItem("Yellow")
-        editor.addItem("Green")
-        editor.currentIndexChanged.connect(self.show_operator_dialog)
-        return editor
-
-    def setEditorData(self, editor, index):
-        value = index.data()
-        editor.setCurrentText(value)
-
-    def setModelData(self, editor, model, index):
-        value = editor.currentText()
-        model.setData(index, value)
-
-    def updateEditorGeometry(self, editor, option, index):
-        editor.setGeometry(option.rect)
-
-    def show_operator_dialog(self):
-        check_out_by = OperatorDialog("ALL").get_operator()
-        list_widget = QListWidget()
-        list_widget.addItems(check_out_by)
-        # Connect the itemClicked signal to a custom slot
-        list_widget.itemClicked.connect(self.on_operator_selected(check_out_by))
-        check_out_dialog.exec_()
-
-    def on_operator_selected(self, item):
-        selected_operator = item
-        print(selected_operator)
-        # Save the new status and selected operator to the database and log the changes
-        # You will need to modify this part to access the service order number and the new status value
-        service_order = ...
-        new_status = ...
-
-        self.db.update_status(new_status, service_order, selected_operator)
-        self.db.log_update("Updated Status", so=service_order, operator=selected_operator, status=new_status)
-
-        self.parent().refresh_table()
-        self.parent().parent().close()
 
 
 class SCMRTable(QTableWidget):
     def __init__(self, db: ServiceOrderDB):
         super().__init__()
         self.db = db
-        self.setItemDelegateForColumn(4, StatusDelegate(self))
         self.setColumnCount(8)
         self.setHorizontalHeaderLabels(
             ["Service Order", "Location", "Completion Date", "Closed By", "Status", "Comments", "Last Updated",
@@ -66,19 +22,17 @@ class SCMRTable(QTableWidget):
         self.load_data()
 
         # Connect the cellDoubleClicked signal to the custom function
-
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.cellDoubleClicked.connect(self.show_full_comments)
-
 
     @staticmethod
     def load_settings():
         with open("Settings.json", "r") as settings_file:
             operators = json.load(settings_file)
-            all_operators = {
-                'ARA': operators["Operators"]["ARA"],
-                'CA': operators["Operators"]["CA"],
-                'ALL': [*set(operators["Operators"]["ARA"] + operators["Operators"]["CA"])]
-            }
+            all_operators = {'ARA': operators["Operators"]["ARA"], 'CA': operators["Operators"]["CA"], 'ALL': []}
+            for operator in all_operators['ARA'] + all_operators['CA']:
+                if operator not in all_operators['ALL']:
+                    all_operators['ALL'].append(operator)
             return all_operators
 
     def on_cell_changed(self, row, column):
@@ -109,18 +63,11 @@ class SCMRTable(QTableWidget):
                 self.setItem(i, j, QTableWidgetItem(str(column_data)))
 
     def show_full_comments(self, row, column):
-        # Check if the double-clicked cell is in the "Comments" column
-
-        if column == 5:
-                comments = self.item(row, column).text()
-                # Create a new QDialog to show the full comments
-                comments_dialog = QDialog(self)
-                comments_dialog.setWindowTitle("Full Comments")
-                comments_dialog.resize(150, 50)
-                layout = QVBoxLayout()
-                label = QLabel(comments)
-                layout.addWidget(label)
-                comments_dialog.setLayout(layout)
-                self.cell_clicked_count = 0
-                # Show the QDialog
-                comments_dialog.exec_()
+        # Get service order data for the selected row
+        service_order_data = []
+        for col in range(self.columnCount()):
+            service_order_data.append(self.item(row, col).text())
+        service_order_editor_dialog = ServiceOrderEditorDialog(service_order_data, self.db)
+        if service_order_editor_dialog.exec_():
+            # Refresh the table
+            self.load_data()
