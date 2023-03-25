@@ -6,98 +6,147 @@ from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView
 from ServiceOrderDB import ServiceOrderDB
-
+from functools import partial
+from PySide6.QtCore import Signal
 import json
-
+import datetime
 from PySide6 import QtWidgets
 
 
 class RescanOrdersDialog(QDialog):
+    refresh_main_table_signal = Signal()
+
     def __init__(self, db: ServiceOrderDB):
         super().__init__()
 
         self.setWindowTitle("Rescan Orders")
-        self.db = db
+        operator_dialog = OperatorDialog()
+        if operator_dialog.exec_():
+            self.operator = operator_dialog.get_operator()
 
-        layout = QVBoxLayout(self)
+            self.db = db
+            self.scanned_orders = 0
+            layout = QVBoxLayout(self)
 
-        counter_layout = QHBoxLayout()
-        self.scanned_orders_counter = QLabel("Scanned Orders: 0")
-        self.remaining_orders_counter = QLabel("Remaining Orders: 0")
-        counter_layout.addWidget(self.scanned_orders_counter)
-        counter_layout.addWidget(self.remaining_orders_counter)
-        layout.addLayout(counter_layout)
+            counter_layout = QHBoxLayout()
+            self.scanned_orders_counter = QLabel(f"Scanned Orders: {self.scanned_orders}")
+            self.remaining_orders = len(self.db.select_all_unchecked_out())  # Initialize remaining_orders
+            self.remaining_orders_counter = QLabel(f"Remaining Orders: {self.remaining_orders}")
+            counter_layout.addWidget(self.scanned_orders_counter)
+            counter_layout.addWidget(self.remaining_orders_counter)
+            layout.addLayout(counter_layout)
 
-        self.table_widget = QTableWidget()
-        self.load_data()
-        layout.addWidget(self.table_widget)
+            self.table_widget = QTableWidget()
+            self.load_data()
+            self.resize(1080, 720)
+            layout.addWidget(self.table_widget)
 
-        input_layout = QHBoxLayout()
-        self.scanner_input = QLineEdit()
-        self.scanner_input.setPlaceholderText("Scan service order")
-        input_layout.addWidget(self.scanner_input)
-        self.scanner_input.returnPressed.connect(self.handle_scanner_input)
+            input_layout = QHBoxLayout()
+            self.scanner_input = QLineEdit()
+            self.scanner_input.setPlaceholderText("Scan service order")
+            input_layout.addWidget(self.scanner_input)
+            self.scanner_input.returnPressed.connect(self.handle_scanner_input)
 
-        self.operator_selector = QComboBox()
-        self.load_operators()
-        input_layout.addWidget(self.operator_selector)
+            self.close_button = QPushButton("Close")
+            self.close_button.clicked.connect(self.close_and_refresh)
+            input_layout.addWidget(self.close_button)
 
-        self.close_button = QPushButton("Close")
-        self.close_button.clicked.connect(self.accept)
-        input_layout.addWidget(self.close_button)
+            layout.addLayout(input_layout)
+        return
 
-        layout.addLayout(input_layout)
+    def close_and_refresh(self):
+        self.refresh_main_table_signal.emit()
+        self.accept()
 
     def load_data(self):
         # Load data from the database
-        orders = self.db.select_not_checked_out_orders()
+        orders = self.db.select_all_scanned_out()
+        print(f"Orders: {orders}")
+        if len(orders) != 0:
 
-        # Set the table size and headers
-        self.table_widget.setRowCount(len(orders))
-        self.table_widget.setColumnCount(7)
-        self.table_widget.setHorizontalHeaderLabels(["SO#", "Location", "Completion Date", "Closed By", "Status", "Comments", "Check Out"])
+            # Set the table size and headers
+            self.table_widget.setRowCount(len(orders))
+            self.table_widget.setColumnCount(8)  # Change to 8 to accommodate the CFI button
+            self.table_widget.setHorizontalHeaderLabels(
+                ["SO#", "Location", "Completion Date", "Closed By", "Status", "Comments", "Check Out", "CFI"])
+            self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        # Fill the table with data
-        for row, order in enumerate(orders):
-            for col, value in enumerate(order):
-                item = QTableWidgetItem(str(value))
-                self.table_widget.setItem(row, col, item)
+            # Fill the table with data
+            for row, service_order in enumerate(orders):
+                for col, data in enumerate(service_order):
+                    item = QTableWidgetItem(str(data))
+                    self.table_widget.setItem(row, col, item)
+                cfi_button = QPushButton("CFI")
+                cfi_button.clicked.connect(lambda _, so=service_order: self.handle_cfi_button(so))
 
-        self.table_widget.resizeColumnsToContents()
+                self.table_widget.setCellWidget(row, 7, cfi_button)  # Set CFI button in the 8th column
 
-    def load_operators(self):
-        operators = self.db.get_all_operators()
-        for operator in operators:
-            self.operator_selector.addItem(operator)
+            self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+            self.table_widget.resizeColumnsToContents()
+        else:
+            self.check_and_reset_scanned_status()
 
-    def handle_scanner_input(self):
-        scanned_input = self.scanner_input.text()
-        existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
+            self.table_widget.setRowCount(len(orders))
 
-        if not existing_service_order:
-            QMessageBox.warning(self, "Not Found", f"Service Order {scanned_input} not found in the database.")
-            return
+    def check_and_reset_scanned_status(self):
+            unscanned_orders = self.db.select_all_unchecked_out()
+            if not unscanned_orders:
+                reply = QMessageBox.information(self, "Information", "There are no more service orders that need to be "
+                                                                     "scanned. (Press okay to close)")
+                if reply == QMessageBox.Ok:
+                    scanned_orders = self.db.select_all_scanned_out()  # Create this method in ServiceOrderDB
+                    for order in scanned_orders:
+                        self.db.update_service_order(ServiceOrder=order[0], operator=self.operator_name.text(), Scanned=0)
 
-        location_dialog = LocationDialog()
-        if location_dialog.exec_():
-            new_location = location_dialog.location_input.text().upper()
-            updated_by = self.operator_selector.currentText()
-            last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-
-            self.db.update_location(new_location, scanned_input, updated_by)
-            self.db.update_updated_by(updated_by, scanned_input, updated_by)
-            self.db.update_last_updated(last_updated, scanned_input, updated_by)
-
+    def handle_cfi_button(self, service_order):
+        reply = QMessageBox.warning(self, "Warning", "Are you sure you want to delete this service order?",
+                                    QMessageBox.Yes | QMessageBox.No)
+        if reply == QMessageBox.Yes:
+            self.db.delete_service_order(service_order[0], operator=self.updated_by)
             self.load_data()
-            self.update_counters()
-            self.scanner_input.clear()
 
     def update_counters(self):
-        scanned_orders = self.db.get_scanned_orders_count()
-        remaining_orders = self.db.get_remaining_orders_count()
+        self.scanned_orders_counter.setText(f"Scanned Orders: {self.scanned_orders}")
+        self.remaining_orders_counter.setText(f"Remaining Orders: {self.remaining_orders}")
 
-        self.scanned_orders_counter.setText(f"Scanned Orders: {scanned_orders}")
-        self.remaining_orders_counter.setText(f"Remaining Orders: {remaining_orders}")
+    def handle_scanner_input(self):
+        # Get the scanned input from the input box
+        scanned_input = self.scanner_input.text()
+
+        # Check if the service order is already in the database
+        existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
+
+        # If the service order is in the database and not checked out
+        if existing_service_order:
+            if existing_service_order[0][-1] == 0:
+                # Display the location dialog
+                location_dialog = LocationDialog()
+                if location_dialog.exec_():
+                    location = location_dialog.location_input.text().upper()
+
+                    # Update the location and updated_by in the database
+                    self.db.update_location(location, scanned_input, self.operator)
+                    self.db.update_updated_by(self.operator, scanned_input, self.operator)
+                    self.db.update_scanned_status(1, scanned_input, self.operator)
+
+                    # Update the counters
+                    self.scanned_orders += 1
+                    self.remaining_orders -= 1
+                    self.update_counters()
+
+                    # Reload the table data
+                    self.table_widget.load_data()
+
+            else:
+                QMessageBox.information(self, "Information", "Service order not found or already checked out.")
+
+        # Clear the input box
+        self.scanner_input.clear()
+        #self.load_data()
+
+        # Emit the signal to refresh the main table
+        self.refresh_main_table_signal.emit()
+
 
 class ServiceOrderView(QtWidgets.QDialog):
     def __init__(self, service_order_info):
@@ -436,7 +485,7 @@ class CalendarDialog(QDialog):
         self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-        self.table.cellDoubleClicked.connect(lambda row, : self.show_service_order(row))
+        self.table.cellDoubleClicked.connect(lambda row,: self.show_service_order(row))
 
         for row_data in results:
             row_number = self.table.rowCount()
@@ -463,6 +512,7 @@ class CalendarDialog(QDialog):
         service_order_info = self.db.select_unit(ServiceOrder=service_order)
         ServiceOrderView(service_order_info[0]).exec()
 
+
 # Define a QDialog for entering a location
 class LocationDialog(QDialog):
     def __init__(self):
@@ -485,6 +535,7 @@ class LocationDialog(QDialog):
         self.location_input.returnPressed.connect(self.accept)
         self.setLayout(layout)
 
+
 # Define a QDialog for selecting who closed the service order
 class CloseByDialog(QDialog):
     def __init__(self, close_by_list):
@@ -499,6 +550,7 @@ class CloseByDialog(QDialog):
             layout.addWidget(button, index // 2, index % 2)
         self.setLayout(layout)
         self.button_group.buttonClicked.connect(self.accept)
+
 
 # Define a QDialog for selecting an operator
 class OperatorDialog(QDialog):
@@ -526,6 +578,7 @@ class OperatorDialog(QDialog):
     def get_operator(self):
         return self.selected_operator
 
+
 # Define a QDialog for selecting a service order status
 class StatusDialog(QDialog):
     def __init__(self):
@@ -552,6 +605,7 @@ class StatusDialog(QDialog):
     def set_status_yellow(self):
         self.status = "YELLOW"
         self.accept()
+
 
 # Define a QDialog for entering comments
 class CommentsDialog(QDialog):

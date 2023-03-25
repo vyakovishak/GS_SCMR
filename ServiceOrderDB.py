@@ -66,7 +66,8 @@ class ServiceOrderDB:
                 UpdatedBy VARCHAR(255),
                 CheckOutBy VARCHAR(255),
                 CheckOutDate DATETIME,
-                CheckedOut BOOLEAN DEFAULT FALSE
+                CheckedOut BOOLEAN DEFAULT FALSE,
+                Scanned BOOLEAN DEFAULT FALSE
             );"""
 
         self.execute(sql, commit=True)
@@ -94,7 +95,8 @@ class ServiceOrderDB:
         LastUpdated = ''
         UpdatedBy = ''
 
-        SQL_COMMAND = "INSERT OR IGNORE INTO ServiceOrders(ServiceOrder, Location, CompletionDate, ClosedBy, Status, Comments, LastUpdated, UpdatedBy, CheckOutBy, CheckOutDate, CheckedOut) VALUES(?,?,?,?,?,?,?,?)"
+        SQL_COMMAND = "INSERT OR IGNORE INTO ServiceOrders(ServiceOrder, Location, CompletionDate, ClosedBy, Status, " \
+                      "Comments, LastUpdated, UpdatedBy) VALUES(?,?,?,?,?,?,?,?)"
 
         parameters = (ServiceOrder,
                       Location,
@@ -113,13 +115,28 @@ class ServiceOrderDB:
         SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0"
         return self.execute(SQL_COMMAND, fetchall=True)
 
+    def select_all_scanned_out(self):
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 AND Scanned=1"
+        return self.execute(SQL_COMMAND, fetchall=True)
+
     # Updates the check-out operator for a given service order
     def update_check_out_by(self, check_out_by, so, operator):
-
         current_data = self.select_unit(column='CheckOutBy', ServiceOrder=so)
         self.log_update("Updated Check Out By", so=so, operator=operator, before=current_data, after=check_out_by)
         SQL_COMMAND = "UPDATE ServiceOrders SET CheckOutBy=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(check_out_by, so), commit=True)
+
+    def update_scanned_status(self, scanned_status, so, operator):
+        current_data = self.select_unit(column='Scanned', ServiceOrder=so)
+        self.log_update("Updated Scanned", so=so, operator=operator, before=current_data, after=scanned_status)
+        SQL_COMMAND = "UPDATE ServiceOrders SET Scanned=? WHERE ServiceOrder=?"
+        return self.execute(SQL_COMMAND, parameters=(scanned_status, so), commit=True)
+
+    def update_updated_by(self, updated_by, so, operator):
+        current_data = self.select_unit(column='UpdatedBy', ServiceOrder=so)
+        self.log_update("Updated Updated By", so=so, operator=operator, before=current_data, after=updated_by)
+        SQL_COMMAND = "UPDATE ServiceOrders SET UpdatedBy=? WHERE ServiceOrder=?"
+        return self.execute(SQL_COMMAND, parameters=(updated_by, so), commit=True)
 
     # Updates the check-out date for a given service order
     def update_check_out_date(self, check_out_date, so, operator):

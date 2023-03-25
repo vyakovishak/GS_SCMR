@@ -1,4 +1,5 @@
 # MainWindow.py
+from functools import partial
 
 import datetime
 import json
@@ -8,7 +9,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
     QComboBox
 from PySide6.QtGui import QIcon
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
-    ServiceOrderEditorDialog, load_settings, ServiceOrderView
+    ServiceOrderEditorDialog, load_settings, ServiceOrderView, RescanOrdersDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
 from WindowsLayout import LayoutSettings
@@ -45,7 +46,7 @@ class MainWin(QMainWindow):
 
         # Create a rescan button
         self.rescan_button = QPushButton("RESCAN")
-
+        self.rescan_button.clicked.connect(self.show_rescan_orders_dialog)
 
         # Create the SCMRTable for displaying service orders
         self.table_widget = SCMRTable(self.db)
@@ -76,6 +77,16 @@ class MainWin(QMainWindow):
 
         # Add the QHBoxLayout to the QVBoxLayout
         main_layout.addLayout(input_delete_layout)
+
+    def show_rescan_orders_dialog(self):
+
+        rescan_orders_dialog = RescanOrdersDialog(self.db)
+
+        rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
+        rescan_orders_dialog.exec_()
+
+    def refresh_main_table(self):
+        self.load_data()
 
     # Display the calendar dialog
     def show_calendar_dialog(self):

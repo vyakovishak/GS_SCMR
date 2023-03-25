@@ -4,9 +4,9 @@ from PySide6 import QtWidgets
 from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHeaderView, QDialog, QVBoxLayout, QLabel, \
     QItemDelegate
 from PySide6.QtWidgets import QItemDelegate, QComboBox, QDialog, QVBoxLayout, QListWidget
-from DialogsWindow import OperatorDialog, ServiceOrderEditorDialog, load_settings
+from DialogsWindow import OperatorDialog, ServiceOrderEditorDialog
 from ServiceOrderDB import ServiceOrderDB
-import json
+from utils import load_settings
 
 
 class SCMRTable(QTableWidget):
