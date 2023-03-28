@@ -9,10 +9,11 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
     QComboBox
 from PySide6.QtGui import QIcon
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
-    ServiceOrderEditorDialog, load_settings, ServiceOrderView, RescanOrdersDialog
+    load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
 from WindowsLayout import LayoutSettings
+from utils import load_settings
 
 
 # Define the main window class
@@ -45,7 +46,7 @@ class MainWin(QMainWindow):
         self.calendar_button = QPushButton(calendar_icon, "")
 
         # Create a rescan button
-        self.rescan_button = QPushButton("RESCAN")
+        self.rescan_button = QPushButton("Rescan")
         self.rescan_button.clicked.connect(self.show_rescan_orders_dialog)
 
         # Create the SCMRTable for displaying service orders
@@ -53,37 +54,63 @@ class MainWin(QMainWindow):
         main_layout.addWidget(self.table_widget)
 
         # Create a QHBoxLayout for the input box and delete button
-        input_delete_layout = QHBoxLayout()
 
-        # Create a QVBoxLayout for input box
+        input_buttons_layout = QVBoxLayout()
+
+        # Create a QHBoxLayout for input box
         input_layout = QHBoxLayout()
         self.input_box = QLineEdit()
         self.input_label = QLabel("SO#")
         input_layout.addWidget(self.input_label)
         input_layout.addWidget(self.input_box)
         self.input_box.returnPressed.connect(self.handle_scanner_input)
-        input_delete_layout.addLayout(input_layout)
+
+        input_buttons_layout.addLayout(input_layout)
+
+        # Create the admin button
+        self.admin_button = QPushButton("Admin")
+        # Connect the admin button to the show_admin_login_dialog method
+        self.admin_button.clicked.connect(self.show_admin_login_dialog)
 
         # Create a QVBoxLayout for delete button
-        delete_layout = QVBoxLayout()
+
         self.delete_button = QPushButton("Delete")
-        delete_layout.addWidget(self.calendar_button)
-        delete_layout.addWidget(self.delete_button)
-        delete_layout.addWidget(self.rescan_button)
         self.delete_button.clicked.connect(self.delete_selected_entry)
         self.rescan_button.clicked.connect(self.rescan_orders)
-        input_delete_layout.addLayout(delete_layout)
         self.calendar_button.clicked.connect(self.show_calendar_dialog)
 
-        # Add the QHBoxLayout to the QVBoxLayout
-        main_layout.addLayout(input_delete_layout)
+        # Create a QHBoxLayout for the buttons
+        buttons_layout = QHBoxLayout()
+        buttons_layout.addWidget(self.admin_button)
+        buttons_layout.addWidget(self.delete_button)
+        buttons_layout.addStretch(1)
+        buttons_layout.addWidget(self.rescan_button)
+        buttons_layout.addWidget(self.calendar_button)  # Admin button
+
+        input_buttons_layout.addLayout(buttons_layout)
+
+        # Add the QVBoxLayout to the main layout
+        main_layout.addLayout(input_buttons_layout)
+
+    # Inside the MainWin class
+
+    @staticmethod
+    def show_admin_login_dialog():
+        admin_login_dialog = AdminLoginDialog()
+        if admin_login_dialog.exec_():
+            admin_management_dialog = AdminManagement()
+            admin_management_dialog.exec_()
+
+    def load_data(self):
+        self.table_widget.load_data()
 
     def show_rescan_orders_dialog(self):
-
-        rescan_orders_dialog = RescanOrdersDialog(self.db)
-
-        rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
-        rescan_orders_dialog.exec_()
+        operator_dialog = OperatorDialog()
+        if operator_dialog.exec_():
+            operator = operator_dialog.get_operator()
+            rescan_orders_dialog = RescanOrdersDialog(self.db, operator)
+            rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
+            rescan_orders_dialog.exec_()
 
     def refresh_main_table(self):
         self.load_data()
@@ -97,29 +124,31 @@ class MainWin(QMainWindow):
 
     # Delete the selected service order from the table and database
     def delete_selected_entry(self):
-        # Get the selected row
-        selected_row = self.table_widget.currentRow()
+        operator_dialog = OperatorDialog()
+        if operator_dialog.exec_():
+            deleted_by = operator_dialog.get_operator()
+            # Get the selected row
+            selected_row = self.table_widget.currentRow()
 
-        # If no row is selected, display a warning message and return
-        if selected_row == -1:
-            QMessageBox.warning(self, "No Selection", "Please select an entry to delete.")
-            return
-        # Get the service order number from the selected row
-        service_order = self.table_widget.item(selected_row, 0).text()
+            # If no row is selected, display a warning message and return
+            if selected_row == -1:
+                QMessageBox.warning(self, "No Selection", "Please select an entry to delete.")
+                return
+            # Get the service order number from the selected row
+            service_order = self.table_widget.item(selected_row, 0).text()
 
-        # Delete the service order from the database
-        service_order_db = ServiceOrderDB()
-        service_order_db.delete_service_order(service_order, operator="Some Operator")
+            # Delete the service order from the database
+            self.db.delete_service_order(service_order, deleted_by)
 
-        # Remove the row from the table
-        self.table_widget.removeRow(selected_row)
+            # Remove the row from the table
+            self.table_widget.removeRow(selected_row)
 
-        # Display a message in the status bar
-        self.status_bar.showMessage("No entry selected for deletion")
-        self.status_bar.showMessage(f"Service Order: {service_order} was deleted from database!")
+            # Display a message in the status bar
+            self.status_bar.showMessage("No entry selected for deletion")
+            self.status_bar.showMessage(f"Service Order: {service_order} was deleted from database!")
 
     def rescan_orders(self):
-        operator = OperatorDialog("ALL").get_operator()
+        operator = OperatorDialog().get_operator()
         if operator:
             rescan_orders_dialog = RescanOrdersDialog(self.db, operator)
             rescan_orders_dialog.exec_()
@@ -131,17 +160,14 @@ class MainWin(QMainWindow):
 
         # Check if the service order is already in the database
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
-
         # If the service order is already in the database and is checked out, display information about the service order
-        if existing_service_order:
+        if len(existing_service_order) != 0:
             # Check if the service order is checked out
-            checked_out = existing_service_order[0][-1]
-
+            checked_out = existing_service_order[0][-2]
             if existing_service_order and checked_out != 0:
                 service_order_dialog = ServiceOrderView(existing_service_order[0])
                 service_order_dialog.exec_()
                 return
-
 
             else:
                 operator_dialog = OperatorDialog()
@@ -149,7 +175,7 @@ class MainWin(QMainWindow):
                     check_out_by = operator_dialog.get_operator()
                     if check_out_by != 1:
                         # Update the CheckOut value, CheckOutDate, and CheckOutBy in the database
-                        self.db.update_checked_out(True, scanned_input, check_out_by)
+                        self.db.update_checked_out(1, scanned_input, check_out_by)
                         self.db.update_check_out_date(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                                       scanned_input,
                                                       check_out_by)

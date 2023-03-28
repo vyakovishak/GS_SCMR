@@ -29,7 +29,7 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="f6f37656-0706-4302-b364-396503e804a8">
-      <console name="Connection" type="STANDARD" schema="main" session="Main"><![CDATA[SELECT * FROM ServiceOrders WHERE 1  AND DATE(CompletionDate)='2023-03-24' AND CheckedOut=1 AND Status='GREEN']]></console>
+      <console name="Connection" type="STANDARD" schema="main" session="Main"><![CDATA[SELECT * FROM ServiceOrders WHERE CheckedOut=0]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">

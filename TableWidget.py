@@ -6,7 +6,6 @@ from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHead
 from PySide6.QtWidgets import QItemDelegate, QComboBox, QDialog, QVBoxLayout, QListWidget
 from DialogsWindow import OperatorDialog, ServiceOrderEditorDialog
 from ServiceOrderDB import ServiceOrderDB
-from utils import load_settings
 
 
 class SCMRTable(QTableWidget):
@@ -25,16 +24,6 @@ class SCMRTable(QTableWidget):
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.cellDoubleClicked.connect(self.show_full_comments)
 
-    @staticmethod
-    def load_settings():
-        with open("Settings.json", "r") as settings_file:
-            operators = json.load(settings_file)
-            all_operators = {'ARA': operators["Operators"]["ARA"], 'CA': operators["Operators"]["CA"], 'ALL': []}
-            for operator in all_operators['ARA'] + all_operators['CA']:
-                if operator not in all_operators['ALL']:
-                    all_operators['ALL'].append(operator)
-            return all_operators
-
     def on_cell_changed(self, row, column):
         if column == 5:
             check_out_dialog = OperatorDialog().get_operator()
@@ -45,7 +34,7 @@ class SCMRTable(QTableWidget):
     def load_data(self):
         self.setRowCount(0)
         data = self.db.select_all_unchecked_out()
-        print(data)
+        print("Load Data"+ str(data))
         if data is not None:
             for row_number, row_data in enumerate(data):
                 self.insertRow(row_number)
@@ -64,10 +53,15 @@ class SCMRTable(QTableWidget):
 
     def show_full_comments(self, row, column):
         # Get service order data for the selected row
-        service_order_data = []
-        for col in range(self.columnCount()):
-            service_order_data.append(self.item(row, col).text())
-        service_order_editor_dialog = ServiceOrderEditorDialog(service_order_data, self.db)
-        if service_order_editor_dialog.exec_():
-            # Refresh the table
-            self.load_data()
+        # Display the operator dialog
+        operator_dialog = OperatorDialog()
+        if operator_dialog.exec_():
+            editing_by = operator_dialog.get_operator()
+            service_order_data = []
+            for col in range(self.columnCount()):
+                service_order_data.append(self.item(row, col).text())
+
+            service_order_editor_dialog = ServiceOrderEditorDialog(service_order_data, self.db, editing_by)
+            if service_order_editor_dialog.exec_():
+                # Refresh the table
+                self.load_data()
