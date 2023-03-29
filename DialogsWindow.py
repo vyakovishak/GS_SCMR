@@ -484,9 +484,27 @@ class ServiceOrderEditorDialog(QDialog):
         comments = self.comments_input.text()
         service_order = int(self.service_order_data[0])
 
-        # Update the database
-        self.db.update_service_order(service_order, self.editing_by , Location=location, ClosedBy=closed_by, Status=status,
-                                     Comments=comments)
+        # Create a dictionary to store the changed values
+        changes = {}
+
+        # Compare the initial values with the updated values and store the changes
+        if location != self.service_order_data[1]:
+            changes["Location"] = {"before": self.service_order_data[1], "after": location}
+        if closed_by != self.service_order_data[3]:
+            changes["ClosedBy"] = {"before": self.service_order_data[3], "after": closed_by}
+        if status != self.service_order_data[4]:
+            changes["Status"] = {"before": self.service_order_data[4], "after": status}
+        if comments != self.service_order_data[5]:
+            changes["Comments"] = {"before": self.service_order_data[5], "after": comments}
+
+        before = {
+            key: self.service_order_data[index] for index, key in
+            enumerate(['ServiceOrder', 'Location', 'ClosedBy', 'Status', 'Comments'])
+        }
+
+        # Update the database with only the changed values
+        if changes:
+            self.db.update_service_order(service_order, self.editing_by, before=before, **changes)
 
         self.accept()
 

@@ -175,11 +175,8 @@ class MainWin(QMainWindow):
                     check_out_by = operator_dialog.get_operator()
                     if check_out_by != 1:
                         # Update the CheckOut value, CheckOutDate, and CheckOutBy in the database
-                        self.db.update_checked_out(1, scanned_input, check_out_by)
-                        self.db.update_check_out_date(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                                      scanned_input,
-                                                      check_out_by)
-                        self.db.update_check_out_by(check_out_by, scanned_input, check_out_by)
+                        self.db.update_checkout_info(1, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), check_out_by, scanned_input, check_out_by)
+
 
                         # Update the table
                         self.table_widget.load_data()
