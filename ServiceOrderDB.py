@@ -68,7 +68,8 @@ class ServiceOrderDB:
                 CheckOutBy VARCHAR(255),
                 CheckOutDate DATETIME,
                 CheckedOut BOOLEAN DEFAULT FALSE,
-                Scanned BOOLEAN DEFAULT FALSE
+                Scanned BOOLEAN DEFAULT FALSE,
+                CFI BOOLEAN DEFAULT FALSE
             );"""
 
         self.execute(sql, commit=True)
@@ -90,9 +91,18 @@ class ServiceOrderDB:
             :param Status: The status of the service order.
             :param Comments: The comments associated with the service order.
         """
-        self.log_update("Add Service Order", operator=ClosedBy, ServiceOrder=ServiceOrder, Location=Location,
-                        CompletionDate=CompletionDate, ClosedBy=ClosedBy, Status=Status, Comments=Comments,
-                        )
+
+        after = {
+            "ServiceOrder": ServiceOrder,
+            "Location": Location,
+            "CompletionDate": CompletionDate,
+            "ClosedBy": ClosedBy,
+            "Status": Status,
+            "Comments": Comments
+        }
+
+        self.log_update("Add Service Order", operator=ClosedBy, ServiceOrder=ServiceOrder, before={}, after=after)
+
         LastUpdated = ''
         UpdatedBy = ''
         CheckOutBy = ''
@@ -132,22 +142,25 @@ class ServiceOrderDB:
         return self.execute(SQL_COMMAND, parameters=(checked_out, check_out_date, check_out_by, so), commit=True)
 
     def update_last_updated(self, last_updated, so, operator):
-        current_data = self.select_unit(column='LastUpdated', ServiceOrder=so)
-        self.log_update("Updated Check Out By", ServiceOrder=so, operator=operator, before=current_data,
-                        after=last_updated)
+        current_last_updated = self.select_unit(column='LastUpdated', ServiceOrder=so)
+        self.log_update("Updated Check Out By", ServiceOrder=so, operator=operator,
+                        before={"LastUpdated": current_last_updated},
+                        after={"LastUpdated": last_updated})
         SQL_COMMAND = "UPDATE ServiceOrders SET LastUpdated=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(last_updated, so), commit=True)
 
     def update_scanned_status(self, scanned_status, so, operator):
-        current_data = self.select_unit(column='Scanned', ServiceOrder=so)
-        self.log_update("Updated Scanned", ServiceOrder=so, operator=operator, before=current_data,
-                        after=scanned_status)
+        current_scanned_status = self.select_unit(column='Scanned', ServiceOrder=so)
+        self.log_update("Updated Scanned", ServiceOrder=so, operator=operator,
+                        before={"Scanned": current_scanned_status},
+                        after={"Scanned": scanned_status})
         SQL_COMMAND = "UPDATE ServiceOrders SET Scanned=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(scanned_status, so), commit=True)
 
     def update_updated_by(self, updated_by, so, operator):
-        current_data = self.select_unit(column='UpdatedBy', ServiceOrder=so)
-        self.log_update("Updated Updated By", ServiceOrder=so, operator=operator, before=current_data, after=updated_by)
+        current_updated_by = self.select_unit(column='UpdatedBy', ServiceOrder=so)
+        self.log_update("Updated Updated By", ServiceOrder=so, operator=operator,
+                        before={"UpdatedBy": current_updated_by}, after={"UpdatedBy": updated_by})
         SQL_COMMAND = "UPDATE ServiceOrders SET UpdatedBy=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(updated_by, so), commit=True)
 
@@ -172,14 +185,13 @@ class ServiceOrderDB:
         return self.execute(SQL_COMMAND, parameters=(new_so, old_so), commit=True)
 
     # Updates a service order with the given parameters
-    def update_service_order(self, ServiceOrder: int, operator, log=True, before=None, **kwargs):
-
-        print("kwargs here:" + str(kwargs))
+    def update_service_order(self, ServiceOrder: int, operator, before, after, log=True):
         SQL_COMMAND = f"UPDATE ServiceOrders SET "
         parameters = []
-        for key, value in kwargs.items():
+        for key, value in after.items():
             SQL_COMMAND += f"{key}=?, "
-            parameters.append(value['after'])
+
+            parameters.append(value)
 
         SQL_COMMAND = SQL_COMMAND.rstrip(", ")
         SQL_COMMAND += " WHERE ServiceOrder=?"
@@ -188,14 +200,14 @@ class ServiceOrderDB:
         # Logging functionality
         if log:
             operation = "Update Service Order"
-            self.log_update(operation, ServiceOrder=ServiceOrder, operator=operator, before=before, **kwargs)
+            self.log_update(operation, ServiceOrder=ServiceOrder, operator=operator, before=before, after=after)
 
         return self.execute(SQL_COMMAND, parameters=tuple(parameters), commit=True)
 
-
     def update_location(self, location, so, operator):
-        current_data = self.select_unit(column='Location', ServiceOrder=so)
-        self.log_update("Updated Location", ServiceOrder=so, operator=operator, before=current_data, after=location)
+        current_location = self.select_unit(column='Location', ServiceOrder=so)
+        self.log_update("Updated Location", ServiceOrder=so, operator=operator, before={"Location": current_location},
+                        after={"Location": location})
         SQL_COMMAND = "UPDATE ServiceOrders SET Location=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(location, so), commit=True)
 
@@ -214,25 +226,41 @@ class ServiceOrderDB:
 
     def update_status(self, status, so, operator):
         current_data = self.select_unit(column='Status', ServiceOrder=so)
-        self.log_update("Updated Location", ServiceOrder=so, operator=operator, before=current_data, after=status)
+        self.log_update("Updated Location",
+                        ServiceOrder=so,
+                        operator=operator,
+                        before=current_data,
+                        after=status)
         SQL_COMMAND = "UPDATE ServiceOrders SET Status=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(status, so), commit=True)
 
     def update_comments(self, comments, so, operator):
         current_data = self.select_unit(column='Comments', ServiceOrder=so)
-        self.log_update("Updated Location", ServiceOrder=so, operator=operator, before=current_data, after=comments)
+        self.log_update("Updated Location",
+                        ServiceOrder=so,
+                        operator=operator,
+                        before=current_data,
+                        after=comments)
         SQL_COMMAND = "UPDATE ServiceOrders SET Comments=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(comments, so), commit=True)
 
     def update_status_updated(self, last_updated, so, operator):
         current_data = self.select_unit(column='Status', ServiceOrder=so)
-        self.log_update("Updated Location", ServiceOrder=so, operator=operator, before=current_data, after=last_updated)
+        self.log_update("Updated Location",
+                        ServiceOrder=so,
+                        operator=operator,
+                        before=current_data,
+                        after=last_updated)
         SQL_COMMAND = "UPDATE ServiceOrders SET Status=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(last_updated, so), commit=True)
 
     def update_checked_out(self, checked_out, so, operator):
         current_data = self.select_unit(column='CheckedOut', ServiceOrder=so)
-        self.log_update("Checkout", ServiceOrder=so, operator=operator, before=current_data, after=checked_out)
+        self.log_update("Checkout",
+                        ServiceOrder=so,
+                        operator=operator,
+                        before=current_data,
+                        after=checked_out)
         SQL_COMMAND = "UPDATE ServiceOrders SET CheckedOut=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(checked_out, so), commit=True)
 
@@ -248,12 +276,17 @@ class ServiceOrderDB:
         self.log_update("Delete All Service Orders", operator=operator)
         return self.execute("DELETE FROM ServiceOrders WHERE True", commit=True)
 
-    def delete_service_order(self, so, operator):
-        self.log_update("Delete Service Order", ServiceOrder=so, operator=operator)
-        SQL_COMMAND = "DELETE FROM ServiceOrders WHERE ServiceOrder=?"
+    def delete_service_order(self, status, so, operator):
+        current_data = self.select_unit(column='CFI', ServiceOrder=so)
+        self.log_update("Delete Service Order",
+                        ServiceOrder=so,
+                        operator=operator,
+                        before={"CFI": current_data},
+                        after={"CFI": status})
+        SQL_COMMAND = "UPDATE ServiceOrders SET CFI = 1 WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(so,), commit=True)
 
-    def log_update(self, operation, operator=None, **kwargs):
+    def log_update(self, operation, operator=None, ServiceOrder=None, before={}, after={}):
         timestamp = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         log_entry = {
             "timestamp": timestamp,
@@ -262,18 +295,12 @@ class ServiceOrderDB:
             "changes": {}
         }
 
-        if operation == "Add Service Order":
-            log_entry["changes"]["before"] = {}
-            log_entry["changes"]["after"] = kwargs
-        else:
-            before_changes = kwargs.get("before", {})
-            for key, value in kwargs.items():
-                if key not in ["ServiceOrder", "operator", "before"]:
-                    change = {
-                        "before": before_changes.get(key, None),
-                        "after": value
-                    }
-                    log_entry["changes"][key] = change
+        for key, value in after.items():
+            change = {
+                "before": before.get(key, None),
+                "after": value
+            }
+            log_entry["changes"][key] = change
 
         log_filename = "update_log.json"
 
@@ -283,7 +310,7 @@ class ServiceOrderDB:
         else:
             data = {}
 
-        service_order_key = str(kwargs['ServiceOrder'])
+        service_order_key = str(ServiceOrder)
 
         if service_order_key not in data:
             data[service_order_key] = []

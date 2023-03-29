@@ -108,8 +108,10 @@ class MainWin(QMainWindow):
         operator_dialog = OperatorDialog()
         if operator_dialog.exec_():
             operator = operator_dialog.get_operator()
+
             rescan_orders_dialog = RescanOrdersDialog(self.db, operator)
             rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
+
             rescan_orders_dialog.exec_()
 
     def refresh_main_table(self):
@@ -157,9 +159,10 @@ class MainWin(QMainWindow):
     def handle_scanner_input(self):
         # Get the scanned input from the input box
         scanned_input = self.input_box.text()
-
         # Check if the service order is already in the database
+
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
+
         # If the service order is already in the database and is checked out, display information about the service order
         if len(existing_service_order) != 0:
             # Check if the service order is checked out
@@ -168,24 +171,20 @@ class MainWin(QMainWindow):
                 service_order_dialog = ServiceOrderView(existing_service_order[0])
                 service_order_dialog.exec_()
                 return
-
             else:
                 operator_dialog = OperatorDialog()
                 if operator_dialog.exec_():
                     check_out_by = operator_dialog.get_operator()
                     if check_out_by != 1:
                         # Update the CheckOut value, CheckOutDate, and CheckOutBy in the database
-                        self.db.update_checkout_info(1, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"), check_out_by, scanned_input, check_out_by)
-
-
+                        self.db.update_checkout_info(1, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                                     check_out_by, scanned_input, check_out_by)
                         # Update the table
                         self.table_widget.load_data()
-
                         # Clear the input box
                         self.input_box.clear()
                         self.status_bar.showMessage(f"Serves Order {scanned_input} was checked out!")
                         return
-
         # If the service order is not already in the database, prompt the user for information and add it to the database
         else:
             # Display the location dialog

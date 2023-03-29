@@ -34,14 +34,12 @@ class SCMRTable(QTableWidget):
     def load_data(self):
         self.setRowCount(0)
         data = self.db.select_all_unchecked_out()
-        print("Load Data"+ str(data))
+
         if data is not None:
             for row_number, row_data in enumerate(data):
                 self.insertRow(row_number)
                 for column_number, data in enumerate(row_data):
                     self.setItem(row_number, column_number, QTableWidgetItem(str(data)))
-        else:
-            print("The database is empty.")
 
     def update_data(self):
         service_orders = self.db.select_all_service_orders()

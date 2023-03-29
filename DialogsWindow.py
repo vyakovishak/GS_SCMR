@@ -142,6 +142,9 @@ class RescanOrdersDialog(QDialog):
         self.scanned_orders = 0
         self.setWindowTitle("Rescan Orders")
         self.operator = operator
+        self.table_widget = QTableWidget()
+        self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.table_widget.resizeColumnsToContents()
         self.init_dialog()
 
     def init_dialog(self):
@@ -158,13 +161,12 @@ class RescanOrdersDialog(QDialog):
         counter_layout.addWidget(self.remaining_orders_counter)
         layout.addLayout(counter_layout)
 
-        self.table_widget = QTableWidget()
         self.load_data()
         self.resize(1080, 720)
         layout.addWidget(self.table_widget)
 
         input_layout = QHBoxLayout()
-        self.scanner_input = QLineEdit()
+        self.scanner_input = ScannerInput()
         self.scanner_input.setPlaceholderText("Scan service order")
         input_layout.addWidget(self.scanner_input)
         self.scanner_input.returnPressed.connect(self.handle_scanner_input)
@@ -184,7 +186,7 @@ class RescanOrdersDialog(QDialog):
     def load_data(self):
         # Load data from the database
         orders = self.db.select_all_scanned_out()
-        print("orders:" + str(orders))
+
         if len(orders) != 0:
 
             # Set the table size and headers
@@ -204,8 +206,7 @@ class RescanOrdersDialog(QDialog):
                 cfi_button.clicked.connect(self.handle_cfi_button)
 
                 self.table_widget.setCellWidget(row, 7, cfi_button)  # Set CFI button in the 8th column
-            self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-            self.table_widget.resizeColumnsToContents()
+
         else:
             self.check_and_reset_scanned_status()
 
@@ -219,7 +220,9 @@ class RescanOrdersDialog(QDialog):
             if reply == QMessageBox.Ok:
                 scanned_orders = self.db.select_all_unchecked_out()  # Create this method in ServiceOrderDB
                 for order in scanned_orders:
-                    self.db.update_service_order(ServiceOrder=order[0], operator=self.operator, Scanned=0,
+                    self.db.update_service_order(ServiceOrder=order[0], operator=self.operator,
+                                                 before={"Scanned": True},
+                                                 after={"Scanned": False},
                                                  log=False)
                 # Emit the signal to refresh the main table
                 self.refresh_main_table_signal.emit()
@@ -232,7 +235,7 @@ class RescanOrdersDialog(QDialog):
         reply = QMessageBox.warning(self, "Warning", "Are you sure you want to delete this service order?",
                                     QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.db.delete_service_order(service_order[0], operator=self.updated_by)
+            self.db.delete_service_order(status=1, so=service_order[0], operator=self.operator)
             self.load_data()
 
     def update_counters(self):
@@ -240,15 +243,17 @@ class RescanOrdersDialog(QDialog):
         self.remaining_orders_counter.setText(f"Remaining Orders: {self.remaining_orders}")
 
     def handle_scanner_input(self):
+
         # Get the scanned input from the input box
         scanned_input = self.scanner_input.text()
 
         # Check if the service order is already in the database
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
+        print("Here is order:" + str(existing_service_order))
 
         # If the service order is in the database and not checked out
         if existing_service_order:
-            if existing_service_order[0][-1] == 0:
+            if existing_service_order[0][-2] == 0:
                 # Display the location dialog
                 location_dialog = LocationDialog()
                 if location_dialog.exec_():
@@ -275,7 +280,9 @@ class RescanOrdersDialog(QDialog):
                     self.refresh_main_table_signal.emit()
 
             else:
-                QMessageBox.information(self, "Information", "Service order not found or already checked out.")
+                QMessageBox.information(self, "Information", "Service Order was updated already!")
+        else:
+            QMessageBox.information(self, "Information", "Service order not found.")
 
         # Clear the input box
         self.scanner_input.clear()
@@ -283,6 +290,14 @@ class RescanOrdersDialog(QDialog):
 
         # Emit the signal to refresh the main table
         self.refresh_main_table_signal.emit()
+
+class ScannerInput(QLineEdit):
+    def keyPressEvent(self, event):
+        if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
+            self.returnPressed.emit()
+            event.accept()
+        else:
+            super().keyPressEvent(event)
 
 
 class CFIButton(QPushButton):
@@ -418,7 +433,6 @@ class ServiceOrderEditorDialog(QDialog):
         self.all_operators = load_settings()
         self.setWindowTitle("Edit Service Order")
         self.service_order_data = service_order_data
-        print("edditing operator: " + str(editing_by))
 
         layout = QVBoxLayout()
 
@@ -485,26 +499,26 @@ class ServiceOrderEditorDialog(QDialog):
         service_order = int(self.service_order_data[0])
 
         # Create a dictionary to store the changed values
-        changes = {}
+        before = {}
+        after = {}
 
         # Compare the initial values with the updated values and store the changes
         if location != self.service_order_data[1]:
-            changes["Location"] = {"before": self.service_order_data[1], "after": location}
+            before["Location"] = self.service_order_data[1]
+            after["Location"] = location
         if closed_by != self.service_order_data[3]:
-            changes["ClosedBy"] = {"before": self.service_order_data[3], "after": closed_by}
+            before["ClosedBy"] = self.service_order_data[3]
+            after["ClosedBy"] = closed_by
         if status != self.service_order_data[4]:
-            changes["Status"] = {"before": self.service_order_data[4], "after": status}
+            before["Status"] = self.service_order_data[4]
+            after["Status"] = status
         if comments != self.service_order_data[5]:
-            changes["Comments"] = {"before": self.service_order_data[5], "after": comments}
-
-        before = {
-            key: self.service_order_data[index] for index, key in
-            enumerate(['ServiceOrder', 'Location', 'ClosedBy', 'Status', 'Comments'])
-        }
+            before["Comments"] = self.service_order_data[5]
+            after["Comments"] = comments
 
         # Update the database with only the changed values
-        if changes:
-            self.db.update_service_order(service_order, self.editing_by, before=before, **changes)
+        if after:
+            self.db.update_service_order(service_order, self.editing_by, before=before, after=after)
 
         self.accept()
 
