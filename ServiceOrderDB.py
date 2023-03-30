@@ -57,7 +57,7 @@ class ServiceOrderDB:
         """
         sql = """
                 CREATE TABLE IF NOT EXISTS ServiceOrders (
-                ServiceOrder INTEGER PRIMARY KEY,
+                ServiceOrder VARCHAR(255) PRIMARY KEY,
                 Location VARCHAR(255),
                 CompletionDate DATETIME,
                 ClosedBy VARCHAR(255),
@@ -134,12 +134,18 @@ class ServiceOrderDB:
         return self.execute(SQL_COMMAND, fetchall=True)
 
     # Updates the check-out operator for a given service order
-    def update_checkout_info(self, checked_out, check_out_date, check_out_by, so, operator):
-        current_data = self.select_unit(ServiceOrder=so)
-        self.log_update("Checkout", ServiceOrder=so, operator=operator, before=current_data,
-                        after=(checked_out, check_out_date, check_out_by))
-        SQL_COMMAND = "UPDATE ServiceOrders SET CheckedOut=?, CheckOutDate=?, CheckOutBy=? WHERE ServiceOrder=?"
-        return self.execute(SQL_COMMAND, parameters=(checked_out, check_out_date, check_out_by, so), commit=True)
+    def update_checkout_info(self, status, timestamp, operator, so):
+        current_data = self.select_unit(column='CheckedOut, CheckoutDate, CheckOutBy', ServiceOrder=so)  # [(0, '', '')]
+        print(current_data)
+        current_data_tuple = current_data[0]
+        before_data = {"CheckedOut": current_data_tuple[0], "CheckoutDate": current_data_tuple[1],
+                       "CheckOutBy": current_data_tuple[2]}
+        after_data = {"CheckedOut": status, "CheckoutDate": timestamp, "CheckOutBy": operator}
+
+        self.log_update("Checkout", ServiceOrder=so, operator=operator, before=before_data, after=after_data)
+
+        SQL_COMMAND = "UPDATE ServiceOrders SET CheckedOut = ?, CheckoutDate = ?, CheckOutBy = ? WHERE ServiceOrder=?"
+        return self.execute(SQL_COMMAND, parameters=(status, timestamp, operator, so), commit=True)
 
     def update_last_updated(self, last_updated, so, operator):
         current_last_updated = self.select_unit(column='LastUpdated', ServiceOrder=so)
@@ -264,6 +270,15 @@ class ServiceOrderDB:
         SQL_COMMAND = "UPDATE ServiceOrders SET CheckedOut=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(checked_out, so), commit=True)
 
+    def get_service_orders_by_last_digits(self, last_digits: str):
+        """
+            Filters the service orders based on the last digits of the service order number.
+            :param last_digits: A string representing the last digits of the service order number.
+            :return: A list of filtered service orders.
+        """
+        SQL_COMMAND = f"SELECT * FROM ServiceOrders WHERE ServiceOrder LIKE ?"
+        return self.execute(SQL_COMMAND, parameters=('%' + last_digits,), fetchall=True)
+
     def select_unit(self, column='*', **kwargs):
         SQL_COMMAND = f"SELECT {column} FROM ServiceOrders WHERE"
         SQL_COMMAND, parameters = self.format_args(SQL_COMMAND, kwargs)
@@ -294,7 +309,7 @@ class ServiceOrderDB:
             "operator": operator,
             "changes": {}
         }
-
+        print(after)
         for key, value in after.items():
             change = {
                 "before": before.get(key, None),

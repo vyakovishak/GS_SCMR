@@ -2,17 +2,97 @@
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
 from PySide6.QtCore import QDate, Qt
+from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
-    QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem
+    QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem,QSplitter,QListView
+
 from ServiceOrderDB import ServiceOrderDB
-from functools import partial
 from PySide6.QtCore import Signal
 import json
 import datetime
 from PySide6 import QtWidgets
 from utils import load_settings
-import functools
+
+
+class AboutDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('About')
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        about_label = QLabel("SCMR Management Beta V1\n\n"
+                             "This program helps you keep track of service orders.\n"
+                             "Created by Vasyl Yakovishak.")
+        layout.addWidget(about_label)
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.close)
+        layout.addWidget(close_button)
+
+        self.setLayout(layout)
+
+
+class WelcomeScreen(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle('Welcome')
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        welcome_label = QLabel("Welcome to SCMR Management Beta V1\n\n"
+                               "This program will help you keep track of service orders."
+                               "PS. From V 599 with Love !")
+
+
+        layout.addWidget(welcome_label)
+
+        tutorial_button = QPushButton("Tutorial")
+        tutorial_button.clicked.connect(self.show_tutorial)
+        layout.addWidget(tutorial_button)
+
+        skip_button = QPushButton("Skip")
+        skip_button.clicked.connect(self.close)
+        layout.addWidget(skip_button)
+
+        self.setLayout(layout)
+
+    def show_tutorial(self):
+        tutorial_dialog = TutorialDialog(self)
+        tutorial_dialog.exec_()
+
+
+class TutorialDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.setWindowTitle("Tutorial")
+        self.resize(720, 480)
+        self.init_ui()
+
+    def init_ui(self):
+        layout = QVBoxLayout()
+
+        splitter = QSplitter()
+
+        video_list = QListView()
+        splitter.addWidget(video_list)
+
+        video_player = QVideoWidget()
+        splitter.addWidget(video_player)
+
+        layout.addWidget(splitter)
+
+        close_button = QPushButton("Close")
+        close_button.clicked.connect(self.close)
+        layout.addWidget(close_button)
+
+        self.setLayout(layout)
 
 
 class AdminLoginDialog(QDialog):
@@ -132,6 +212,17 @@ class AdminManagement(QDialog):
             json.dump(settings, f, indent=2)
 
 
+class CustomQDialog(QDialog):
+    def __init__(self, should_display: bool, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        self.should_display = should_display
+
+    def exec_(self):
+        if self.should_display:
+            return super().exec_()
+        return QDialog.Rejected
+
+
 class RescanOrdersDialog(QDialog):
     refresh_main_table_signal = Signal()
 
@@ -145,7 +236,13 @@ class RescanOrdersDialog(QDialog):
         self.table_widget = QTableWidget()
         self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
         self.table_widget.resizeColumnsToContents()
-        self.init_dialog()
+
+        self.remaining_orders = len(self.db.select_all_unchecked_out())  # Initialize remaining_orders
+
+        if self.remaining_orders > 0:
+            self.init_dialog()
+        else:
+            self.close_and_refresh()
 
     def init_dialog(self):
 
@@ -226,7 +323,9 @@ class RescanOrdersDialog(QDialog):
                                                  log=False)
                 # Emit the signal to refresh the main table
                 self.refresh_main_table_signal.emit()
-                self.close()
+
+                # Close the RescanOrdersDialog
+                self.close_and_refresh()
 
     def handle_cfi_button(self):
         clicked_button = self.sender()
@@ -291,6 +390,7 @@ class RescanOrdersDialog(QDialog):
         # Emit the signal to refresh the main table
         self.refresh_main_table_signal.emit()
 
+
 class ScannerInput(QLineEdit):
     def keyPressEvent(self, event):
         if event.key() == Qt.Key_Return or event.key() == Qt.Key_Enter:
@@ -309,6 +409,7 @@ class CFIButton(QPushButton):
 class ServiceOrderView(QtWidgets.QDialog):
     def __init__(self, service_order_info):
         super().__init__()
+        print(service_order_info)
         self.service_order_info = service_order_info
         self.setup_ui()
         self.resize(800, 600)
@@ -379,10 +480,11 @@ class ServiceOrderView(QtWidgets.QDialog):
 
         # Add a label and input field for whether the service order was checked out or not
         checked_out_label = QtWidgets.QLabel("Checked Out:")
-        checked_out_input = QtWidgets.QLineEdit(str(bool(self.service_order_info[10])))
+        checked_out_status = "Checked out" if bool(self.service_order_info[10]) else "NOT Check out"
+        checked_out_input = QtWidgets.QLineEdit(str(bool(checked_out_status)))
 
         # Display "True" or "False" instead of "1" or "0"
-        checked_out_input.setText("True" if bool(self.service_order_info[10]) else "False")
+        checked_out_input.setText(checked_out_status)
 
         checked_out_input.setReadOnly(True)
         layout.addRow(checked_out_label, checked_out_input)
@@ -411,15 +513,23 @@ class ServiceOrderView(QtWidgets.QDialog):
         updates = data.get(service_order_key, [])
 
         table = QTableWidget(self)
-        table.setColumnCount(3)
+        table.setColumnCount(7)
         table.setRowCount(len(updates))
-        table.setHorizontalHeaderLabels(["Timestamp", "Operation", "Parameters"])
+        table.setHorizontalHeaderLabels(
+            ["Timestamp", "Operation", "Location", "Completion Date", "Closed By", "Status", "Comments"])
         table.horizontalHeader().setStretchLastSection(True)
 
         for i, update in enumerate(sorted(updates, key=lambda x: x['timestamp'])):
             table.setItem(i, 0, QTableWidgetItem(update['timestamp']))
             table.setItem(i, 1, QTableWidgetItem(update['operation']))
-            table.setItem(i, 2, QTableWidgetItem(json.dumps(update['parameters'])))
+            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments'], start=2):
+                if key in update['changes']:
+                    before = str(update['changes'][key]['before']) if update['changes'][key]['before'] else ""
+                    after = str(update['changes'][key]['after'])
+                    table.setItem(i, j, QTableWidgetItem(f"{before} → {after}" if before else after))
+
+        table.resizeColumnsToContents()
+        table.setSortingEnabled(True)
 
         layout.addRow(table)
 
@@ -433,37 +543,30 @@ class ServiceOrderEditorDialog(QDialog):
         self.all_operators = load_settings()
         self.setWindowTitle("Edit Service Order")
         self.service_order_data = service_order_data
-
+        self.resize(1080, 480)
         layout = QVBoxLayout()
 
+        # Create a QFormLayout for the input fields and labels
+        input_layout = QFormLayout()
+
         # Service Order Number (unchangeable)
-        so_number_layout = QHBoxLayout()
         so_number_label = QLabel("Service Order:")
         so_number_value = QLabel(str(self.service_order_data[0]))
-        so_number_layout.addWidget(so_number_label)
-        so_number_layout.addWidget(so_number_value)
-        layout.addLayout(so_number_layout)
+        input_layout.addRow(so_number_label, so_number_value)
 
         # Location
-        location_layout = QHBoxLayout()
         location_label = QLabel("Location:")
         self.location_input = QLineEdit(self.service_order_data[1])
-        location_layout.addWidget(location_label)
-        location_layout.addWidget(self.location_input)
-        layout.addLayout(location_layout)
+        input_layout.addRow(location_label, self.location_input)
 
         # Closed By (dropdown)
-        closed_by_layout = QHBoxLayout()
         closed_by_label = QLabel("Closed By:")
         self.closed_by_input = QComboBox()
         self.closed_by_input.addItems(self.all_operators)
         self.closed_by_input.setCurrentText(self.service_order_data[3])
-        closed_by_layout.addWidget(closed_by_label)
-        closed_by_layout.addWidget(self.closed_by_input)
-        layout.addLayout(closed_by_layout)
+        input_layout.addRow(closed_by_label, self.closed_by_input)
 
         # Status (dropdown)
-        status_layout = QHBoxLayout()
         status_label = QLabel("Status:")
         self.status_input = QComboBox()
         self.status_input.addItem("GREEN")
@@ -471,23 +574,29 @@ class ServiceOrderEditorDialog(QDialog):
         self.status_input.addItem("RECEIVING")
         self.status_input.addItem("FULFILMENT")
         self.status_input.setCurrentText(self.service_order_data[4])
-        status_layout.addWidget(status_label)
-        status_layout.addWidget(self.status_input)
-        layout.addLayout(status_layout)
+        input_layout.addRow(status_label, self.status_input)
 
         # Comments
-        comments_layout = QHBoxLayout()
         comments_label = QLabel("Comments:")
         self.comments_input = QLineEdit(self.service_order_data[5])
-        comments_layout.addWidget(comments_label)
-        comments_layout.addWidget(self.comments_input)
-        layout.addLayout(comments_layout)
+        input_layout.addRow(comments_label, self.comments_input)
+
+        # Wrap input_layout with a QHBoxLayout to center it
+        input_centered_layout = QHBoxLayout()
+        input_centered_layout.addStretch()
+        input_centered_layout.addLayout(input_layout)
+        input_centered_layout.addStretch()
+
+        layout.addLayout(input_centered_layout)
 
         # Submit button
         submit_button = QPushButton("Submit")
         submit_button.clicked.connect(self.submit_changes)
-        layout.addWidget(submit_button)
+        layout.addWidget(submit_button, alignment=Qt.AlignCenter)
 
+        from TableWidget import ServiceOrderUpdatesLogTable
+        log_table = ServiceOrderUpdatesLogTable(service_order_data[0], self)
+        layout.addWidget(log_table)
         self.setLayout(layout)
 
     def submit_changes(self):
@@ -496,7 +605,7 @@ class ServiceOrderEditorDialog(QDialog):
         closed_by = self.closed_by_input.currentText()
         status = self.status_input.currentText()
         comments = self.comments_input.text()
-        service_order = int(self.service_order_data[0])
+        service_order = self.service_order_data[0]
 
         # Create a dictionary to store the changed values
         before = {}
@@ -562,6 +671,9 @@ class CalendarDialog(QDialog):
         self.checkout_checkbox = QCheckBox("Check Out")
         filters_layout.addWidget(self.checkout_checkbox)
 
+        self.deleted_checkbox = QCheckBox("Deleted")
+        filters_layout.addWidget(self.deleted_checkbox)
+
         self.closed_by_label = QLabel("Closed By")
         filters_layout.addWidget(self.closed_by_label)
 
@@ -614,9 +726,7 @@ class CalendarDialog(QDialog):
             self.range_label.setText(self.start_date.toString("yyyy-MM-dd"))
         elif self.start_date and self.end_date:
             self.range_label.setText(
-                f"{self.start_date.toString('yyyy-MM-dd')} - {self.end_date.toString('yyyy-MM-dd')}")
-
-        # Update filter results
+                f"{self.start_date.toString('yyyy-MM-dd')} - {self.end_date.toString('yyyy-MM-dd-dd')}")
         self.calendar_clicked()
 
     def calendar_clicked(self):
@@ -640,6 +750,7 @@ class CalendarDialog(QDialog):
         closed_by = self.closed_by.currentText()
         checkout_by = self.checkout_by.currentText()
         status = self.status.currentText()
+        deleted = self.deleted_checkbox.isChecked()
         start_date, end_date = self.start_date.toString(
             'yyyy-MM-dd'), self.end_date if self.end_date is None else self.end_date.toString('yyyy-MM-dd')
 
@@ -675,6 +786,10 @@ class CalendarDialog(QDialog):
 
         if status:
             query += f" AND Status='{status}'"
+
+        if deleted:
+            query += f" AND CFI='{deleted}'"
+
         # Fetch data from the database
         results = self.db.execute(query, fetchall=True)
 
@@ -688,26 +803,8 @@ class CalendarDialog(QDialog):
         label = QLabel("Filtered Service Orders:")
         label.setFont(QFont("Arial", 14, QFont.Bold))
         layout.addWidget(label)
-
-        self.table = QTableWidget()
-        self.table.setColumnCount(10)
-        self.table.setHorizontalHeaderLabels([
-            "Service Order", "Location", "Completion Date", "Closed By", "Status", "Comments",
-            "Last Updated", "Updated By", "Check Out By", "Check Out Date"
-        ])
-
-        self.table.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.table.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
-
-        self.table.cellDoubleClicked.connect(lambda row,: self.show_service_order(row))
-
-        for row_data in results:
-            row_number = self.table.rowCount()
-            self.table.insertRow(row_number)
-            for column_number, data in enumerate(row_data):
-                item = QTableWidgetItem(str(data))
-                self.table.setItem(row_number, column_number, item)
-
+        from TableWidget import CalendarTable
+        self.table = CalendarTable(results)
         layout.addWidget(self.table)
 
         # Add a close button to the dialog
@@ -720,11 +817,6 @@ class CalendarDialog(QDialog):
 
     def get_selected_date_range(self):
         return self.start_date, self.end_date
-
-    def show_service_order(self, row):
-        service_order = self.table.item(row, 0).text()
-        service_order_info = self.db.select_unit(ServiceOrder=service_order)
-        ServiceOrderView(service_order_info[0]).exec()
 
 
 # Define a QDialog for entering a location

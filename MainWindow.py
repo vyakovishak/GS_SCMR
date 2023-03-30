@@ -1,15 +1,18 @@
 # MainWindow.py
 from functools import partial
-
+import re
 import datetime
 import json
 from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, \
     QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget, QCalendarWidget, \
     QGroupBox, QGridLayout, QCheckBox, \
-    QComboBox
+    QComboBox, QDialogButtonBox, QMenu
+
+from PySide6.QtGui import QAction
 from PySide6.QtGui import QIcon
+
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
-    load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog
+    load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
 from WindowsLayout import LayoutSettings
@@ -21,8 +24,8 @@ class MainWin(QMainWindow):
     # Initialize the window
     def __init__(self):
         super().__init__()
-        self.resize(1080, 720)
-
+        self.resize(1444, 720)
+        self.setWindowTitle("SCMR Management")
         # Load application settings
         self.settings = load_settings()
 
@@ -67,10 +70,29 @@ class MainWin(QMainWindow):
 
         input_buttons_layout.addLayout(input_layout)
 
-        # Create the admin button
-        self.admin_button = QPushButton("Admin")
-        # Connect the admin button to the show_admin_login_dialog method
-        self.admin_button.clicked.connect(self.show_admin_login_dialog)
+        # Add menu bar and actions
+        menubar = self.menuBar()
+
+        settings_menu = QMenu("Settings", self)
+        menubar.addMenu(settings_menu)
+
+        admin_action = QAction("Admin", self)
+        admin_action.triggered.connect(self.show_admin_login_dialog)
+        settings_menu.addAction(admin_action)
+
+        tutorial_action = QAction("Tutorial", self)
+        tutorial_action.triggered.connect(self.show_tutorial)
+        settings_menu.addAction(tutorial_action)
+
+        exit_action = QAction("Exit", self)
+        exit_action.triggered.connect(self.close)
+        settings_menu.addAction(exit_action)
+
+        about_action = QAction("About", self)
+        about_action.triggered.connect(self.show_about_dialog)
+        menubar.addAction(about_action)
+
+
 
         # Create a QVBoxLayout for delete button
 
@@ -81,7 +103,6 @@ class MainWin(QMainWindow):
 
         # Create a QHBoxLayout for the buttons
         buttons_layout = QHBoxLayout()
-        buttons_layout.addWidget(self.admin_button)
         buttons_layout.addWidget(self.delete_button)
         buttons_layout.addStretch(1)
         buttons_layout.addWidget(self.rescan_button)
@@ -93,6 +114,14 @@ class MainWin(QMainWindow):
         main_layout.addLayout(input_buttons_layout)
 
     # Inside the MainWin class
+
+    def show_tutorial(self):
+        tutorial_dialog = TutorialDialog(self)
+        tutorial_dialog.exec_()
+
+    def show_about_dialog(self):
+        about_dialog = AboutDialog(self)
+        about_dialog.exec_()
 
     @staticmethod
     def show_admin_login_dialog():
@@ -108,11 +137,15 @@ class MainWin(QMainWindow):
         operator_dialog = OperatorDialog()
         if operator_dialog.exec_():
             operator = operator_dialog.get_operator()
+            remaining_orders = len(self.db.select_all_unchecked_out())
+            if remaining_orders > 0:
+                rescan_orders_dialog = RescanOrdersDialog(self.db, operator)
+                rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
 
-            rescan_orders_dialog = RescanOrdersDialog(self.db, operator)
-            rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
-
-            rescan_orders_dialog.exec_()
+                rescan_orders_dialog.exec_()
+            else:
+                QMessageBox.information(None, "Information",
+                                        "There are no more service orders that need to be scanned.")
 
     def refresh_main_table(self):
         self.load_data()
@@ -140,7 +173,7 @@ class MainWin(QMainWindow):
             service_order = self.table_widget.item(selected_row, 0).text()
 
             # Delete the service order from the database
-            self.db.delete_service_order(service_order, deleted_by)
+            self.db.delete_service_order(1, service_order, deleted_by)
 
             # Remove the row from the table
             self.table_widget.removeRow(selected_row)
@@ -159,15 +192,55 @@ class MainWin(QMainWindow):
     def handle_scanner_input(self):
         # Get the scanned input from the input box
         scanned_input = self.input_box.text()
+
+        # Check if the input is a service order number
+        if not re.match(r'^\d{5}-\d{9}$', scanned_input):
+            # Check if the input is the last 4 digits of a service order number
+            if re.match(r'^\d{4}$', scanned_input):
+                service_orders = self.db.get_service_orders_by_last_digits(scanned_input)
+                if service_orders:
+                    # Create a list widget to display the matching service orders
+                    list_widget = QListWidget()
+                    for service_order in service_orders:
+                        list_widget.addItem(service_order[0])
+
+                    # Create a QDialog to display the matching service orders
+                    match_dialog = QDialog(self)
+                    match_dialog.setWindowTitle("Select Service Order")
+                    match_dialog.resize(300, 200)
+
+                    layout = QVBoxLayout(match_dialog)
+                    layout.addWidget(QLabel("Select the service order:"))
+                    layout.addWidget(list_widget)
+
+                    button_box = QDialogButtonBox(QDialogButtonBox.Ok | QDialogButtonBox.Cancel)
+                    button_box.accepted.connect(match_dialog.accept)
+                    button_box.rejected.connect(match_dialog.reject)
+                    layout.addWidget(button_box)
+
+                    # Show the match dialog and get the selected service order
+                    if match_dialog.exec_():
+                        selected_item = list_widget.currentItem()
+                        if selected_item:
+                            scanned_input = selected_item.text()
+                        else:
+                            QMessageBox.warning(self, "No Selection", "Please select a service order.")
+                            return
+                else:
+                    QMessageBox.warning(self, "Invalid Input", "No service order found with the given last 4 digits.")
+                    return
+            else:
+                QMessageBox.warning(self, "Invalid Input", "Please enter a valid service order number.")
+                return
+
         # Check if the service order is already in the database
-
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
-
         # If the service order is already in the database and is checked out, display information about the service order
         if len(existing_service_order) != 0:
             # Check if the service order is checked out
-            checked_out = existing_service_order[0][-2]
-            if existing_service_order and checked_out != 0:
+            checked_out = existing_service_order[0][-3]
+            deleted = existing_service_order[0][-1]
+            if existing_service_order and checked_out != 0 or deleted != 0:
                 service_order_dialog = ServiceOrderView(existing_service_order[0])
                 service_order_dialog.exec_()
                 return
@@ -178,7 +251,7 @@ class MainWin(QMainWindow):
                     if check_out_by != 1:
                         # Update the CheckOut value, CheckOutDate, and CheckOutBy in the database
                         self.db.update_checkout_info(1, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                                     check_out_by, scanned_input, check_out_by)
+                                                     check_out_by, scanned_input)
                         # Update the table
                         self.table_widget.load_data()
                         # Clear the input box
@@ -211,7 +284,7 @@ class MainWin(QMainWindow):
 
                         # Add the service order to the database
                         self.db.add_service_order(
-                            ServiceOrder=int(scanned_input),
+                            ServiceOrder=scanned_input,
                             Location=location,
                             CompletionDate=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             ClosedBy=close_by,
