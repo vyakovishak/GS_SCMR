@@ -9,8 +9,8 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
     QComboBox, QDialogButtonBox, QMenu
 
 from PySide6.QtGui import QAction
-from PySide6.QtGui import QIcon
-
+from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtCore import Qt, QTimer
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
     load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog
 from ServiceOrderDB import ServiceOrderDB
@@ -23,9 +23,11 @@ from utils import load_settings
 class MainWin(QMainWindow):
     # Initialize the window
     def __init__(self):
-        super().__init__()
+        super(MainWin, self).__init__()
         self.resize(1444, 720)
         self.setWindowTitle("SCMR Management")
+
+        self.setContentsMargins(0, 0, 0, 0)
         # Load application settings
         self.settings = load_settings()
 
@@ -54,6 +56,8 @@ class MainWin(QMainWindow):
 
         # Create the SCMRTable for displaying service orders
         self.table_widget = SCMRTable(self.db)
+
+
         main_layout.addWidget(self.table_widget)
 
         # Create a QHBoxLayout for the input box and delete button
@@ -63,6 +67,7 @@ class MainWin(QMainWindow):
         # Create a QHBoxLayout for input box
         input_layout = QHBoxLayout()
         self.input_box = QLineEdit()
+
         self.input_label = QLabel("SO#")
         input_layout.addWidget(self.input_label)
         input_layout.addWidget(self.input_box)
@@ -77,6 +82,7 @@ class MainWin(QMainWindow):
         menubar.addMenu(settings_menu)
 
         admin_action = QAction("Admin", self)
+
         admin_action.triggered.connect(self.show_admin_login_dialog)
         settings_menu.addAction(admin_action)
 
@@ -90,9 +96,8 @@ class MainWin(QMainWindow):
 
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about_dialog)
+
         menubar.addAction(about_action)
-
-
 
         # Create a QVBoxLayout for delete button
 
@@ -109,11 +114,45 @@ class MainWin(QMainWindow):
         buttons_layout.addWidget(self.calendar_button)  # Admin button
 
         input_buttons_layout.addLayout(buttons_layout)
+        # Add logo to the table
 
         # Add the QVBoxLayout to the main layout
         main_layout.addLayout(input_buttons_layout)
 
     # Inside the MainWin class
+
+    def add_logo_to_table(self):
+        # Create a QLabel to hold the logo
+        self.logo_label = QLabel(self.table_widget)
+
+        # Set the logo as a QPixmap
+        pixmap = QPixmap("gs_logo.png")
+
+        # Scale the pixmap to a desired size
+        pixmap = pixmap.scaled(500, 500, Qt.KeepAspectRatio)  # Increase the size here
+
+        # Set the pixmap to the QLabel
+        self.logo_label.setPixmap(pixmap)
+
+        # Align the logo to the center
+        self.logo_label.setAlignment(Qt.AlignCenter)
+
+        # Position the logo at the center of the table
+        self.update_logo_position()
+
+    def resizeEvent(self, event):
+        super().resizeEvent(event)
+        self.update_logo_position()
+
+    def update_logo_position(self):
+        pixmap = self.logo_label.pixmap()
+
+        self.logo_label.setGeometry(
+            (self.table_widget.width() - pixmap.width()) // 2,
+            (self.table_widget.height() - pixmap.height()) // 2,
+            pixmap.width(),
+            pixmap.height()
+        )
 
     def show_tutorial(self):
         tutorial_dialog = TutorialDialog(self)
@@ -194,7 +233,7 @@ class MainWin(QMainWindow):
         scanned_input = self.input_box.text()
 
         # Check if the input is a service order number
-        if not re.match(r'^\d{5}-\d{9}$', scanned_input):
+        if not re.match(r'^\d{14}$', scanned_input):
             # Check if the input is the last 4 digits of a service order number
             if re.match(r'^\d{4}$', scanned_input):
                 service_orders = self.db.get_service_orders_by_last_digits(scanned_input)
@@ -239,7 +278,7 @@ class MainWin(QMainWindow):
         if len(existing_service_order) != 0:
             # Check if the service order is checked out
             checked_out = existing_service_order[0][-3]
-            deleted = existing_service_order[0][-1]
+            deleted = existing_service_order[0][-2]
             if existing_service_order and checked_out != 0 or deleted != 0:
                 service_order_dialog = ServiceOrderView(existing_service_order[0])
                 service_order_dialog.exec_()

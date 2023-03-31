@@ -68,8 +68,9 @@ class ServiceOrderDB:
                 CheckOutBy VARCHAR(255),
                 CheckOutDate DATETIME,
                 CheckedOut BOOLEAN DEFAULT FALSE,
-                Scanned BOOLEAN DEFAULT FALSE,
-                CFI BOOLEAN DEFAULT FALSE
+                
+                CFI BOOLEAN DEFAULT FALSE,
+                Scanned BOOLEAN DEFAULT FALSE
             );"""
 
         self.execute(sql, commit=True)
@@ -125,12 +126,16 @@ class ServiceOrderDB:
         self.execute(SQL_COMMAND, parameters=parameters, commit=True)
 
     # Selects all service orders that are not checked out
+    def select_service_order(self, so):
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE ServiceOrder=?"
+        return self.execute(SQL_COMMAND, parameters=(so, ), fetchall=True)
+
     def select_all_unchecked_out(self):
-        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 "
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 AND CFI=0"
         return self.execute(SQL_COMMAND, fetchall=True)
 
     def select_all_scanned_out(self):
-        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 AND Scanned=0"
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 AND Scanned=0 AND CFI=0"
         return self.execute(SQL_COMMAND, fetchall=True)
 
     # Updates the check-out operator for a given service order

@@ -27,6 +27,9 @@ class SCMRTable(QTableWidget):
         super().__init__()
         self.db = db
         self.setColumnCount(8)
+        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
+        self.setItemDelegate(AlignCenterDelegate(self))
+        self.resizeColumnsToContents()
         self.setHorizontalHeaderLabels(
             ["Service Order", "Location", "Completion Date", "Closed By", "Status", "Comments", "Last Updated",
              "Updated By"])
@@ -46,20 +49,15 @@ class SCMRTable(QTableWidget):
 
     def load_data(self):
         self.setRowCount(0)
-
         data = self.db.select_all_unchecked_out()
-
         if data is not None:
             for row_number, row_data in enumerate(data):
                 self.insertRow(row_number)
                 for column_number, data in enumerate(row_data):
                     self.setItem(row_number, column_number, QTableWidgetItem(str(data)))
-        self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        self.setItemDelegate(AlignCenterDelegate(self))
-        self.resizeColumnsToContents()
 
     def update_data(self):
-        service_orders = self.db.select_all_service_orders()
+        service_orders = self.db.select_all_unchecked_out()
         self.setRowCount(len(service_orders))
 
         for i, row_data in enumerate(service_orders):
@@ -97,16 +95,19 @@ class ServiceOrderUpdatesLogTable(QTableWidget):
         service_order_key = str(self.service_order)
         updates = data.get(service_order_key, [])
 
-        self.setColumnCount(7)
+        self.setColumnCount(8)  # Increase the column count by one
         self.setRowCount(len(updates))
         self.setHorizontalHeaderLabels(
-            ["Timestamp", "Operation", "Location", "Completion Date", "Closed By", "Status", "Comments"])
+            ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status",
+             "Comments", ])  # Add "Operator" to the list of header labels
         self.horizontalHeader().setStretchLastSection(True)
 
         for i, update in enumerate(sorted(updates, key=lambda x: x['timestamp'])):
             self.setItem(i, 0, QTableWidgetItem(update['timestamp']))
             self.setItem(i, 1, QTableWidgetItem(update['operation']))
-            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments'], start=2):
+            self.setItem(i, 2, QTableWidgetItem(
+                update['operator']))  # Set QTableWidgetItem for the new column with operator data
+            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments'], start=3):
                 if key in update['changes']:
                     before = str(update['changes'][key]['before']) if update['changes'][key]['before'] else ""
                     after = str(update['changes'][key]['after'])
@@ -117,15 +118,15 @@ class ServiceOrderUpdatesLogTable(QTableWidget):
         self.setSortingEnabled(True)
 
 
+
 class CalendarTable(QTableWidget):
     def __init__(self, db):
         super().__init__()
         self.db = db
-
-        self.setColumnCount(10)
+        self.setColumnCount(12)
         self.setHorizontalHeaderLabels([
             "Service Order", "Location", "Completion Date", "Closed By", "Status", "Comments",
-            "Last Updated", "Updated By", "Check Out By", "Check Out Date"
+            "Last Updated", "Updated By", "Check Out By", "Check Out Date", "Check out", "CFI"
         ])
 
         self.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
@@ -139,6 +140,8 @@ class CalendarTable(QTableWidget):
             self.insertRow(row_number)
             for column_number, data in enumerate(row_data):
                 item = QTableWidgetItem(str(data))
+                print(row_data)
+                print(column_number)
                 item.setTextAlignment(Qt.AlignCenter)  # Center the text in table cells
                 self.setItem(row_number, column_number, item)
         self.resizeColumnsToContents()
@@ -153,4 +156,3 @@ class CalendarTable(QTableWidget):
         if service_data is not None:
             view_dialog = ServiceOrderView(service_data)
             view_dialog.exec_()
-
