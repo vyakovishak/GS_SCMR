@@ -1,17 +1,16 @@
 # DialogsWindow.py
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
-from PySide6.QtCore import QDate, Qt
+from PySide6.QtCore import QDate, Qt, QPoint
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtGui import QFont, QPixmap, QImage
+from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem, \
-    QSplitter, QListView, QItemDelegate,QSpinBox, QFileDialog
+    QSplitter, QListView, QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget
 import qrcode
 from PIL.ImageQt import ImageQt
 from PIL import Image, ImageDraw, ImageFont
-
-
+from math import ceil, sqrt
 from ServiceOrderDB import ServiceOrderDB
 from PySide6.QtCore import Signal
 import json
@@ -42,13 +41,13 @@ class QRCodeGeneratorDialog(QDialog):
 
         layout = QVBoxLayout()
 
-        qr_code_area = QVBoxLayout()
-        self.qr_code_label = QLabel()
-        self.qr_code_image = QLabel()
-
-        qr_code_area.addWidget(self.qr_code_label, alignment=Qt.AlignHCenter)
-        qr_code_area.addWidget(self.qr_code_image, alignment=Qt.AlignHCenter)
-        layout.addLayout(qr_code_area)
+        self.qr_code_container = QWidget()
+        self.qr_code_layout = QGridLayout()
+        self.qr_code_container.setLayout(self.qr_code_layout)
+        scroll_area = QScrollArea()
+        scroll_area.setWidgetResizable(True)
+        scroll_area.setWidget(self.qr_code_container)
+        layout.addWidget(scroll_area, stretch=1)
 
         input_layout = QHBoxLayout()
         input_label = QLabel("QR Code Text:")
@@ -83,7 +82,6 @@ class QRCodeGeneratorDialog(QDialog):
 
     def create_qr_code(self):
         text = self.input_box.text()
-
         width = int(self.width_box.text())
         height = int(self.height_box.text())
 
@@ -95,79 +93,160 @@ class QRCodeGeneratorDialog(QDialog):
         )
         qr.add_data(text)
         qr.make(fit=True)
+
         img = qr.make_image(fill_color="black", back_color="white")
 
         img = img.resize((width, height), Image.ANTIALIAS)
 
-        # Create a new image with additional space for the label
-        new_img = Image.new("RGB", (width, height + 40), "white")
-        new_img.paste(img, (0, 0))
+        img_w, img_h = img.size
+        background = Image.new('RGBA', (img_w, img_h + 20), (255, 255, 255, 255))
+        background.paste(img, (0, 0))
 
-        # Draw the label on the new image
-        draw = ImageDraw.Draw(new_img)
-        font = ImageFont.truetype("arial.ttf", 20)  # You can use any font you want
-        text_width, text_height = draw.textsize(text, font=font)
-        x = (new_img.width - text_width) // 2
-        y = height + 10
-        draw.text((x, y), text, font=font, fill="black")
+        draw = ImageDraw.Draw(background)
+        font = ImageFont.truetype("arial.ttf", 18)  # Increase the font size
+        text_w, text_h = draw.textsize(text, font=font)
+        draw.text(((img_w - text_w) // 2, img_h), text, font=font, fill="black")
 
-        qimage = ImageQt.ImageQt(new_img)
-        pixmap = QPixmap.fromImage(qimage)
-        pixmap = pixmap.scaled(width, height + 40, Qt.KeepAspectRatio)
+        self.display_qr_code(background, text)
 
-        self.qr_code_label.setPixmap(pixmap)
+    def display_qr_code(self, img, label_text):
+        pixmap = QPixmap.fromImage(ImageQt(img))
+        qr_image_label = QLabel()
+        qr_image_label.setPixmap(pixmap)
+
+        qr_code_item_layout = QVBoxLayout()
+        qr_code_item_layout.addWidget(qr_image_label, alignment=Qt.AlignHCenter)
+
+        row = len(self.generated_qr_codes) // 4
+        col = len(self.generated_qr_codes) % 4
+        self.qr_code_layout.addLayout(qr_code_item_layout, row, col)
+
+        draw = QPainter(pixmap)
+        font = QFont('Arial', 12)
+        draw.setFont(font)
+        draw.setPen(Qt.black)
+        draw.drawText(QPoint(5, pixmap.height() - 10), label_text)
+        draw.end()
+
+        self.generated_qr_codes.append({'pixmap': pixmap, 'label': label_text})
 
     def save_qr_code(self):
+        save_options = QMessageBox(self)
+        save_options.setIcon(QMessageBox.Information)
+        save_options.setWindowTitle("Save QR Code")
+        save_options.setText("Choose a save option:")
+        save_all_as_single_image_button = save_options.addButton("Save All As Single Image", QMessageBox.ActionRole)
+        save_as_pdf_button = save_options.addButton("Save As PDF", QMessageBox.ActionRole)
+        save_separately_button = save_options.addButton("Save Separately", QMessageBox.ActionRole)
+        save_options.addButton("Cancel", QMessageBox.RejectRole)
+
+        save_options.exec_()
+
+        clicked_button = save_options.clickedButton()
+
+        if clicked_button == save_all_as_single_image_button:
+            self.save_all_as_single_image()
+        elif clicked_button == save_as_pdf_button:
+            self.save_as_pdf()
+        elif clicked_button == save_separately_button:
+            self.save_separately()
+
+    def save_all_as_single_image(self):
         options = QFileDialog.Options()
         options |= QFileDialog.ReadOnly
 
-        selected_filter, _ = QFileDialog.getSaveFileName(self, "Save QR Code", "", "Images (*.png *.xpm *.jpg);;PDF (*.pdf)", options=options)
+        selected_filter, _ = QFileDialog.getSaveFileName(self, "Save All QR Codes as Single Image", "",
+                                                         "Images (*.png *.xpm *.jpg);;PDF (*.pdf)", options=options)
         if not selected_filter:
             return
 
-        if selected_filter.lower().endswith('.pdf'):
-            printer = QPrinter(QPrinter.HighResolution)
-            printer.setOutputFormat(QPrinter.PdfFormat)
-            printer.setPaperSize(QPrinter.A4)
-            printer.setOutputFileName(selected_filter)
+        if not selected_filter.lower().endswith(('.png', '.xpm', '.jpg')):
+            selected_filter += '.png'
 
-            painter = QPainter()
-            painter.begin(printer)
+        num_qr_codes = len(self.generated_qr_codes)
+        grid_size = ceil(sqrt(num_qr_codes))
 
-            # Set the margins and spacing
-            margin = 30
-            spacing = 10
+        max_width = max([item['pixmap'].width() for item in self.generated_qr_codes])
+        max_height = max([item['pixmap'].height() for item in self.generated_qr_codes])
 
-            x, y = margin, margin
-            max_width = printer.pageRect().width() - margin * 2
-            max_height = printer.pageRect().height() - margin * 2
+        result = Image.new('RGB', (max_width * grid_size, max_height * grid_size), (255, 255, 255))
 
-            for i, item in enumerate(self.generated_qr_codes):
-                pixmap = item['pixmap']
-                label = item['label']
+        row, col = 0, 0
+        for item in self.generated_qr_codes:
+            img = Image.fromqpixmap(item['pixmap'])
+            result.paste(img, (col * max_width, row * max_height))
 
-                if x + pixmap.width() > max_width:
-                    x = margin
-                    y += pixmap.height() + spacing
+            col += 1
+            if col >= grid_size:
+                col = 0
+                row += 1
 
-                if y + pixmap.height() > max_height:
-                    printer.newPage()
-                    y = margin
+        result.save(selected_filter)
 
-                painter.drawPixmap(x, y, pixmap)
-                painter.drawText(x, y + pixmap.height() + spacing / 2, label)
+    def save_as_pdf(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
 
-                x += pixmap.width() + spacing
+        selected_filter, _ = QFileDialog.getSaveFileName(self, "Save All QR Codes As PDF", "", "PDF (*.pdf);;",
+                                                         options=options)
+        if not selected_filter:
+            return
 
-            painter.end()
+        if not selected_filter.lower().endswith('.pdf'):
+            selected_filter += '.pdf'
 
-        else:
-            if not selected_filter.lower().endswith(('.png', '.xpm', '.jpg')):
-                selected_filter += '.png'
+        printer = QPrinter(QPrinter.HighResolution)
+        printer.setOutputFormat(QPrinter.PdfFormat)
+        printer.setPaperSize(QPrinter.A4)
+        printer.setOutputFileName(selected_filter)
 
-            pixmap = self.generated_qr_codes[-1]['pixmap']
-            pixmap.save(selected_filter)
+        painter = QPainter()
+        painter.begin(printer)
 
+        margin = 30
+        spacing = 10
+
+        x, y = margin, margin
+        max_width = printer.pageRect().width() - margin * 2
+        max_height = printer.pageRect().height() - margin * 2
+
+        for i, item in enumerate(self.generated_qr_codes):
+            pixmap = item['pixmap']
+
+            if x + pixmap.width() > max_width:
+                x = margin
+                y += pixmap.height() + spacing
+
+            if y + pixmap.height() > max_height:
+                printer.newPage()
+                y = margin
+
+            painter.drawPixmap(x, y, pixmap)
+            x += pixmap.width() + spacing
+
+        painter.end()
+
+    def save_separately(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+
+        selected_filter, _ = QFileDialog.getSaveFileName(self, "Save QR Codes Separately", "",
+                                                         "Images (*.png *.xpm *.jpg);;", options=options)
+        if not selected_filter:
+            return
+
+        file_info = QFileInfo(selected_filter)
+        base_path = file_info.path()
+        base_name = file_info.baseName()
+        suffix = file_info.completeSuffix()
+
+        if not suffix.lower() in ('.png', '.xpm', '.jpg'):
+            suffix += '.png'
+
+        for index, item in enumerate(self.generated_qr_codes):
+            file_name = f"{base_name}_{index + 1}.{suffix}"
+            full_path = QDir(base_path).filePath(file_name)
+            item['pixmap'].save(full_path)
 
 
 class AboutDialog(QDialog):
@@ -189,7 +268,7 @@ class AboutDialog(QDialog):
         # Create a description QLabel with normal font size
         description_label = QLabel("This program helps you keep track of service orders.\n\n\n"
                                    "Created by Vasyl Yakovishak.")
-        description_label.ce
+
         layout.addWidget(description_label)
 
         close_button = QPushButton("Close")
@@ -726,8 +805,6 @@ class ServiceOrderView(QtWidgets.QDialog):
         table.setSortingEnabled(True)
 
         layout.addRow(table)
-
-
 
 
 class ServiceOrderEditorDialog(QDialog):
