@@ -1,12 +1,12 @@
 {
   "Operators": {
     "ALL": [
-      "RP",
       "Q",
       "VY",
       "AS",
       "JH",
-      "RAZ"
+      "RAZ",
+      "KAM"
     ]
   }
 }

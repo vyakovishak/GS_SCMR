@@ -12,7 +12,8 @@ from PySide6.QtGui import QAction
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt, QTimer
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
-    load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog
+    load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
+    QRCodeGeneratorDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
 from WindowsLayout import LayoutSettings
@@ -57,7 +58,6 @@ class MainWin(QMainWindow):
         # Create the SCMRTable for displaying service orders
         self.table_widget = SCMRTable(self.db)
 
-
         main_layout.addWidget(self.table_widget)
 
         # Create a QHBoxLayout for the input box and delete button
@@ -80,6 +80,11 @@ class MainWin(QMainWindow):
 
         settings_menu = QMenu("Settings", self)
         menubar.addMenu(settings_menu)
+        tools_menu = menubar.addMenu('Tools')
+
+        qr_code_generator_action = QAction('QR Code Generator', self)
+        qr_code_generator_action.triggered.connect(self.open_qr_code_generator)
+        tools_menu.addAction(qr_code_generator_action)
 
         admin_action = QAction("Admin", self)
 
@@ -119,7 +124,9 @@ class MainWin(QMainWindow):
         # Add the QVBoxLayout to the main layout
         main_layout.addLayout(input_buttons_layout)
 
-    # Inside the MainWin class
+    def open_qr_code_generator(self):
+        qr_code_generator_dialog = QRCodeGeneratorDialog()
+        qr_code_generator_dialog.exec_()
 
     def add_logo_to_table(self):
         # Create a QLabel to hold the logo
@@ -137,22 +144,7 @@ class MainWin(QMainWindow):
         # Align the logo to the center
         self.logo_label.setAlignment(Qt.AlignCenter)
 
-        # Position the logo at the center of the table
-        self.update_logo_position()
 
-    def resizeEvent(self, event):
-        super().resizeEvent(event)
-        self.update_logo_position()
-
-    def update_logo_position(self):
-        pixmap = self.logo_label.pixmap()
-
-        self.logo_label.setGeometry(
-            (self.table_widget.width() - pixmap.width()) // 2,
-            (self.table_widget.height() - pixmap.height()) // 2,
-            pixmap.width(),
-            pixmap.height()
-        )
 
     def show_tutorial(self):
         tutorial_dialog = TutorialDialog(self)

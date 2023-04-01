@@ -3,10 +3,14 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButt
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
 from PySide6.QtCore import QDate, Qt
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtGui import QFont, QPixmap
+from PySide6.QtGui import QFont, QPixmap, QImage
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem, \
-    QSplitter, QListView, QItemDelegate
+    QSplitter, QListView, QItemDelegate,QSpinBox, QFileDialog
+import qrcode
+from PIL.ImageQt import ImageQt
+from PIL import Image, ImageDraw, ImageFont
+
 
 from ServiceOrderDB import ServiceOrderDB
 from PySide6.QtCore import Signal
@@ -26,6 +30,144 @@ class AlignCenterDelegate(QItemDelegate):
     def paint(self, painter, option, index):
         option.displayAlignment = Qt.AlignHCenter | Qt.AlignVCenter
         super(AlignCenterDelegate, self).paint(painter, option, index)
+
+
+class QRCodeGeneratorDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("QR Code Generator")
+        self.resize(1080, 720)
+
+        self.generated_qr_codes = []
+
+        layout = QVBoxLayout()
+
+        qr_code_area = QVBoxLayout()
+        self.qr_code_label = QLabel()
+        self.qr_code_image = QLabel()
+
+        qr_code_area.addWidget(self.qr_code_label, alignment=Qt.AlignHCenter)
+        qr_code_area.addWidget(self.qr_code_image, alignment=Qt.AlignHCenter)
+        layout.addLayout(qr_code_area)
+
+        input_layout = QHBoxLayout()
+        input_label = QLabel("QR Code Text:")
+        self.input_box = QLineEdit()
+        input_layout.addWidget(input_label)
+        input_layout.addWidget(self.input_box)
+        layout.addLayout(input_layout)
+
+        size_layout = QHBoxLayout()
+        width_label = QLabel("Width:")
+        self.width_box = QLineEdit()
+        height_label = QLabel("Height:")
+        self.height_box = QLineEdit()
+        size_layout.addWidget(width_label)
+        size_layout.addWidget(self.width_box)
+        size_layout.addWidget(height_label)
+        size_layout.addWidget(self.height_box)
+        layout.addLayout(size_layout)
+
+        button_layout = QHBoxLayout()
+        create_button = QPushButton("Create")
+        create_button.clicked.connect(self.create_qr_code)
+        button_layout.addWidget(create_button)
+
+        save_button = QPushButton("Save")
+        save_button.clicked.connect(self.save_qr_code)
+        button_layout.addWidget(save_button)
+
+        layout.addLayout(button_layout)
+
+        self.setLayout(layout)
+
+    def create_qr_code(self):
+        text = self.input_box.text()
+
+        width = int(self.width_box.text())
+        height = int(self.height_box.text())
+
+        qr = qrcode.QRCode(
+            version=1,
+            error_correction=qrcode.constants.ERROR_CORRECT_L,
+            box_size=10,
+            border=4,
+        )
+        qr.add_data(text)
+        qr.make(fit=True)
+        img = qr.make_image(fill_color="black", back_color="white")
+
+        img = img.resize((width, height), Image.ANTIALIAS)
+
+        # Create a new image with additional space for the label
+        new_img = Image.new("RGB", (width, height + 40), "white")
+        new_img.paste(img, (0, 0))
+
+        # Draw the label on the new image
+        draw = ImageDraw.Draw(new_img)
+        font = ImageFont.truetype("arial.ttf", 20)  # You can use any font you want
+        text_width, text_height = draw.textsize(text, font=font)
+        x = (new_img.width - text_width) // 2
+        y = height + 10
+        draw.text((x, y), text, font=font, fill="black")
+
+        qimage = ImageQt.ImageQt(new_img)
+        pixmap = QPixmap.fromImage(qimage)
+        pixmap = pixmap.scaled(width, height + 40, Qt.KeepAspectRatio)
+
+        self.qr_code_label.setPixmap(pixmap)
+
+    def save_qr_code(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.ReadOnly
+
+        selected_filter, _ = QFileDialog.getSaveFileName(self, "Save QR Code", "", "Images (*.png *.xpm *.jpg);;PDF (*.pdf)", options=options)
+        if not selected_filter:
+            return
+
+        if selected_filter.lower().endswith('.pdf'):
+            printer = QPrinter(QPrinter.HighResolution)
+            printer.setOutputFormat(QPrinter.PdfFormat)
+            printer.setPaperSize(QPrinter.A4)
+            printer.setOutputFileName(selected_filter)
+
+            painter = QPainter()
+            painter.begin(printer)
+
+            # Set the margins and spacing
+            margin = 30
+            spacing = 10
+
+            x, y = margin, margin
+            max_width = printer.pageRect().width() - margin * 2
+            max_height = printer.pageRect().height() - margin * 2
+
+            for i, item in enumerate(self.generated_qr_codes):
+                pixmap = item['pixmap']
+                label = item['label']
+
+                if x + pixmap.width() > max_width:
+                    x = margin
+                    y += pixmap.height() + spacing
+
+                if y + pixmap.height() > max_height:
+                    printer.newPage()
+                    y = margin
+
+                painter.drawPixmap(x, y, pixmap)
+                painter.drawText(x, y + pixmap.height() + spacing / 2, label)
+
+                x += pixmap.width() + spacing
+
+            painter.end()
+
+        else:
+            if not selected_filter.lower().endswith(('.png', '.xpm', '.jpg')):
+                selected_filter += '.png'
+
+            pixmap = self.generated_qr_codes[-1]['pixmap']
+            pixmap.save(selected_filter)
+
 
 
 class AboutDialog(QDialog):
