@@ -3,7 +3,7 @@ from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButt
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
 from PySide6.QtCore import QDate, Qt, QPoint
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
+from PySide6.QtGui import QFont, QPixmap, QImage, QPainter, QPen
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem, \
     QSplitter, QListView, QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget
@@ -111,24 +111,20 @@ class QRCodeGeneratorDialog(QDialog):
 
     def display_qr_code(self, img, label_text):
         pixmap = QPixmap.fromImage(ImageQt(img))
-        qr_image_label = QLabel()
-        qr_image_label.setPixmap(pixmap)
 
-        qr_code_item_layout = QVBoxLayout()
-        qr_code_item_layout.addWidget(qr_image_label, alignment=Qt.AlignHCenter)
+        # Create a copy of the pixmap without text for saving purposes
+        pixmap_no_text = QPixmap(pixmap)
+        painter = QPainter(pixmap)
+        painter.setPen(QPen(Qt.black))
+        painter.setFont(QFont('Arial', 20))
+        painter.drawText(QPoint(5, pixmap.height() - 10), label_text)
+        painter.end()
 
-        row = len(self.generated_qr_codes) // 4
-        col = len(self.generated_qr_codes) % 4
-        self.qr_code_layout.addLayout(qr_code_item_layout, row, col)
+        self.qr_code_label.setPixmap(pixmap)
+        self.qr_code_label.repaint()
 
-        draw = QPainter(pixmap)
-        font = QFont('Arial', 12)
-        draw.setFont(font)
-        draw.setPen(Qt.black)
-        draw.drawText(QPoint(5, pixmap.height() - 10), label_text)
-        draw.end()
-
-        self.generated_qr_codes.append({'pixmap': pixmap, 'label': label_text})
+        # Save the pixmap without text in generated_qr_codes list
+        self.generated_qr_codes.append({'pixmap': pixmap_no_text, 'label': label_text})
 
     def save_qr_code(self):
         save_options = QMessageBox(self)
