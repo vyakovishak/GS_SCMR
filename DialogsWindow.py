@@ -401,7 +401,7 @@ class AdminManagement(QDialog):
         self.table_widget = QTableWidget()
         self.table_widget.setRowCount(len(self.operators))
         self.table_widget.setColumnCount(2)
-        self.table_widget.setHorizontalHeaderLabels(["Operator", "Delete"])
+        self.table_widget.setHorizontalHeaderLabels(["Agent", "Delete"])
         self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
         # Add operators and delete buttons to the table
@@ -421,7 +421,7 @@ class AdminManagement(QDialog):
         # Add operator input and button
         add_operator_layout = QHBoxLayout()
         self.operator_input = QLineEdit()
-        self.add_operator_button = QPushButton("Add Operator")
+        self.add_operator_button = QPushButton("Add Agent")
         self.add_operator_button.clicked.connect(self.add_operator)
         add_operator_layout.addWidget(self.operator_input)
         add_operator_layout.addWidget(self.add_operator_button)
@@ -774,7 +774,7 @@ class ServiceOrderView(QtWidgets.QDialog):
         table.setColumnCount(9)  # Update the column count to 9
         table.setRowCount(len(updates))
         table.setHorizontalHeaderLabels(
-            ["Timestamp", "Operation", "Operator", "Location", "Completion Date", "Closed By", "Status", "Comments",
+            ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status", "Comments",
              "CFI"])  # Update the header labels
         table.horizontalHeader().setStretchLastSection(True)
 
@@ -1201,8 +1201,8 @@ class OperatorDialog(QDialog):
 
         confirmation_message = QMessageBox(self)
         confirmation_message.setIcon(QMessageBox.Question)
-        confirmation_message.setWindowTitle("Confirm Operator")
-        confirmation_message.setText(f"Is '{self.selected_operator}' the correct operator?")
+        confirmation_message.setWindowTitle("Confirm Agent")
+        confirmation_message.setText(f"Is '{self.selected_operator}' the correct Agent?")
         yes_button = confirmation_message.addButton(QMessageBox.Yes)
         no_button = confirmation_message.addButton(QMessageBox.No)
         confirmation_message.exec_()
