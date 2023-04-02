@@ -188,6 +188,16 @@ class ServiceOrderDB:
         SQL_COMMAND = "SELECT * FROM ServiceOrders"
         return self.execute(SQL_COMMAND, fetchall=True)
 
+    def check_location_exists(self, location: str) -> bool:
+        """
+            Checks if the given location already exists in the "ServiceOrders" table.
+            :param location: The location to check.
+            :return: True if the location exists, False otherwise.
+        """
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE Location = ?"
+        result = self.execute(SQL_COMMAND, parameters=(location,), fetchall=True)
+        return len(result) > 0
+
     # Updates the service order number for a given service order
     def update_service_order_number(self, old_so, operator):
         current_data = self.select_unit(column='ServiceOrder', ServiceOrder=old_so)

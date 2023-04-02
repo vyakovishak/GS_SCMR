@@ -10,10 +10,10 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
 
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QIcon, QPixmap
-from PySide6.QtCore import Qt, QTimer
+from PySide6.QtCore import Qt, QTimer, Signal
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
     load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
-    QRCodeGeneratorDialog
+    QRCodeGeneratorDialog, LocationWarningDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
 from WindowsLayout import LayoutSettings
@@ -23,6 +23,8 @@ from utils import load_settings
 # Define the main window class
 class MainWin(QMainWindow):
     # Initialize the window
+    location_warning = Signal(str)
+
     def __init__(self):
         super(MainWin, self).__init__()
         self.resize(1444, 720)
@@ -46,6 +48,9 @@ class MainWin(QMainWindow):
         # Initialize the ServiceOrderDB and create the users table
         self.db = ServiceOrderDB(status_bar=self.status_bar)
         self.db.create_table_users()
+        self.location_dialog = LocationDialog(self.db)
+        self.location_dialog.location_warning.connect(self.show_location_warning)
+
 
         # Create an icon button for displaying the calendar dialog
         calendar_icon = QIcon("calendar_icon.png")
@@ -143,8 +148,6 @@ class MainWin(QMainWindow):
 
         # Align the logo to the center
         self.logo_label.setAlignment(Qt.AlignCenter)
-
-
 
     def show_tutorial(self):
         tutorial_dialog = TutorialDialog(self)
@@ -266,7 +269,6 @@ class MainWin(QMainWindow):
 
         # Check if the service order is already in the database
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
-        # If the service order is already in the database and is checked out, display information about the service order
         if len(existing_service_order) != 0:
             # Check if the service order is checked out
             checked_out = existing_service_order[0][-3]
@@ -289,14 +291,16 @@ class MainWin(QMainWindow):
                         self.input_box.clear()
                         self.status_bar.showMessage(f"Serves Order {scanned_input} was checked out!")
                         return
-        # If the service order is not already in the database, prompt the user for information and add it to the database
         else:
-            # Display the location dialog
-            location_dialog = LocationDialog()
-            if location_dialog.exec_():
-                location = location_dialog.location_input.text().upper()
+            if self.location_dialog.exec_():
+                location = self.location_dialog.location_input.text().upper()
 
-                # Display the operator dialog
+                # Check if the location already exists
+                if self.db.check_location_exists(location):
+                    location_warning_dialog = LocationWarningDialog(location)
+                    result = location_warning_dialog.exec_()
+                    if result == QMessageBox.No:
+                        return
                 operator_dialog = OperatorDialog()
                 if operator_dialog.exec_():
                     close_by = operator_dialog.get_operator()
@@ -305,15 +309,12 @@ class MainWin(QMainWindow):
                     status_dialog = StatusDialog()
                     if status_dialog.exec_():
                         status = status_dialog.status
-
-                        # Display the comments dialog
                         comments_dialog = CommentsDialog(status)
                         if comments_dialog.exec_():
                             comments = comments_dialog.comments_input.text()
                         else:
                             return
 
-                        # Add the service order to the database
                         self.db.add_service_order(
                             ServiceOrder=scanned_input,
                             Location=location,
@@ -329,5 +330,16 @@ class MainWin(QMainWindow):
                         # Display a message in the status bar
                         self.status_bar.showMessage(f"Service Order {scanned_input} was added to database!")
 
-        # Clear the input box
-        self.input_box.clear()
+                # Clear the input box
+                self.input_box.clear()
+
+    def show_location_warning(self, location):
+        msg_box = QMessageBox.warning(self, "Location already exists",
+                                      f"The location '{location}' already exists. "
+                                      "Do you want to add the unit to the current location or choose a different location?",
+                                      QMessageBox.Yes | QMessageBox.No)
+
+        if msg_box == QMessageBox.Yes:
+            self.handle_scanner_input()
+        else:
+            return

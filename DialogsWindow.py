@@ -1,7 +1,7 @@
 # DialogsWindow.py
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
-from PySide6.QtCore import QDate, Qt, QPoint
+from PySide6.QtCore import QDate, Qt, QPoint, QDir
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont, QPixmap, QImage, QPainter, QPen
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
@@ -17,6 +17,7 @@ import json
 import datetime
 from PySide6 import QtWidgets
 from utils import load_settings
+import re
 
 
 class AlignCenterDelegate(QItemDelegate):
@@ -36,6 +37,7 @@ class QRCodeGeneratorDialog(QDialog):
         super().__init__()
         self.setWindowTitle("QR Code Generator")
         self.resize(1080, 720)
+        self.qr_codes_per_row = 3
 
         self.generated_qr_codes = []
 
@@ -61,10 +63,15 @@ class QRCodeGeneratorDialog(QDialog):
         self.width_box = QLineEdit()
         height_label = QLabel("Height:")
         self.height_box = QLineEdit()
+        font_size = QLabel("Font Size:")
+        self.font_size = QComboBox()
+        self.font_size.addItems(["2", "4", "6", "8", "10", "12", "14", "16", "18", "20"])
         size_layout.addWidget(width_label)
         size_layout.addWidget(self.width_box)
         size_layout.addWidget(height_label)
         size_layout.addWidget(self.height_box)
+        size_layout.addWidget(font_size)
+        size_layout.addWidget(self.font_size)
         layout.addLayout(size_layout)
 
         button_layout = QHBoxLayout()
@@ -81,50 +88,50 @@ class QRCodeGeneratorDialog(QDialog):
         self.setLayout(layout)
 
     def create_qr_code(self):
-        text = self.input_box.text()
+        input_text = self.input_box.text()
+        texts = input_text.split(',')
+
         width = int(self.width_box.text())
         height = int(self.height_box.text())
+        font_size = int(self.font_size.currentText())
 
-        qr = qrcode.QRCode(
-            version=1,
-            error_correction=qrcode.constants.ERROR_CORRECT_L,
-            box_size=10,
-            border=4,
-        )
-        qr.add_data(text)
-        qr.make(fit=True)
+        for text in texts:
+            qr = qrcode.QRCode(
+                version=1,
+                error_correction=qrcode.constants.ERROR_CORRECT_L,
+                box_size=10,
+                border=4,
+            )
+            qr.add_data(text)
+            qr.make(fit=True)
 
-        img = qr.make_image(fill_color="black", back_color="white")
+            img = qr.make_image(fill_color="black", back_color="white")
+            img = img.resize((width, height), Image.ANTIALIAS)
 
-        img = img.resize((width, height), Image.ANTIALIAS)
+            img_w, img_h = img.size
+            background = Image.new('RGBA', (img_w, img_h + 20), (255, 255, 255, 255))
+            background.paste(img, (0, 0))
 
-        img_w, img_h = img.size
-        background = Image.new('RGBA', (img_w, img_h + 20), (255, 255, 255, 255))
-        background.paste(img, (0, 0))
+            draw = ImageDraw.Draw(background)
+            font = ImageFont.truetype("arial.ttf", font_size)
+            text_w, text_h = draw.textsize(text, font=font)
+            draw.text(((img_w - text_w) // 2, img_h), text, font=font, fill="black")
 
-        draw = ImageDraw.Draw(background)
-        font = ImageFont.truetype("arial.ttf", 18)  # Increase the font size
-        text_w, text_h = draw.textsize(text, font=font)
-        draw.text(((img_w - text_w) // 2, img_h), text, font=font, fill="black")
-
-        self.display_qr_code(background, text)
+            self.display_qr_code(background, text)
 
     def display_qr_code(self, img, label_text):
         pixmap = QPixmap.fromImage(ImageQt(img))
 
-        # Create a copy of the pixmap without text for saving purposes
-        pixmap_no_text = QPixmap(pixmap)
-        painter = QPainter(pixmap)
-        painter.setPen(QPen(Qt.black))
-        painter.setFont(QFont('Arial', 20))
-        painter.drawText(QPoint(5, pixmap.height() - 10), label_text)
-        painter.end()
+        current_index = len(self.generated_qr_codes)
+        row = current_index // self.qr_codes_per_row
+        col = current_index % self.qr_codes_per_row
 
-        self.qr_code_label.setPixmap(pixmap)
-        self.qr_code_label.repaint()
+        qr_code_label = QLabel()
+        qr_code_label.setPixmap(pixmap)
+        self.qr_code_layout.addWidget(qr_code_label, row, col)
 
         # Save the pixmap without text in generated_qr_codes list
-        self.generated_qr_codes.append({'pixmap': pixmap_no_text, 'label': label_text})
+        self.generated_qr_codes.append({'pixmap': pixmap, 'label': label_text})
 
     def save_qr_code(self):
         save_options = QMessageBox(self)
@@ -224,24 +231,16 @@ class QRCodeGeneratorDialog(QDialog):
 
     def save_separately(self):
         options = QFileDialog.Options()
-        options |= QFileDialog.ReadOnly
+        options |= QFileDialog.ShowDirsOnly
 
-        selected_filter, _ = QFileDialog.getSaveFileName(self, "Save QR Codes Separately", "",
-                                                         "Images (*.png *.xpm *.jpg);;", options=options)
-        if not selected_filter:
+        selected_directory = QFileDialog.getExistingDirectory(self, "Save QR Codes Separately", "", options=options)
+        if not selected_directory:
             return
 
-        file_info = QFileInfo(selected_filter)
-        base_path = file_info.path()
-        base_name = file_info.baseName()
-        suffix = file_info.completeSuffix()
-
-        if not suffix.lower() in ('.png', '.xpm', '.jpg'):
-            suffix += '.png'
-
-        for index, item in enumerate(self.generated_qr_codes):
-            file_name = f"{base_name}_{index + 1}.{suffix}"
-            full_path = QDir(base_path).filePath(file_name)
+        for item in self.generated_qr_codes:
+            label = item['label']
+            file_name = f"{label}.png"
+            full_path = QDir(selected_directory).filePath(file_name)
             item['pixmap'].save(full_path)
 
 
@@ -469,8 +468,6 @@ class CustomQDialog(QDialog):
 
 
 class RescanOrdersDialog(QDialog):
-    refresh_main_table_signal = Signal()
-
     def __init__(self, db: ServiceOrderDB, operator: str):
         super().__init__()
         self.setContentsMargins(5, 5, 5, 5)
@@ -587,47 +584,49 @@ class RescanOrdersDialog(QDialog):
         self.remaining_orders_counter.setText(f"Remaining Orders: {self.remaining_orders}")
 
     def handle_scanner_input(self):
-
-        # Get the scanned input from the input box
         scanned_input = self.scanner_input.text()
+        # Check if the input is a valid service order number
+        if re.match(r'^\d{14}$', scanned_input):
+            # Check if the service order is already in the database
+            existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
+            print("Here is order:" + str(existing_service_order))
 
-        # Check if the service order is already in the database
-        existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
-        print("Here is order:" + str(existing_service_order))
+            # If the service order is in the database and not checked out
+            if existing_service_order:
+                if existing_service_order[0][-2] == 0:
+                    # Display the location dialog
+                    location_dialog = LocationDialog()
+                    if location_dialog.exec_():
+                        location = location_dialog.location_input.text().upper()
 
-        # If the service order is in the database and not checked out
-        if existing_service_order:
-            if existing_service_order[0][-2] == 0:
-                # Display the location dialog
-                location_dialog = LocationDialog()
-                if location_dialog.exec_():
-                    location = location_dialog.location_input.text().upper()
+                        # Update the location and updated_by in the database
+                        self.db.update_location(location, scanned_input, self.operator)
+                        self.db.update_updated_by(self.operator, scanned_input, self.operator)
+                        self.db.update_scanned_status(1, scanned_input, self.operator)
+                        self.db.update_last_updated(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                                                    scanned_input,
+                                                    self.operator)
+                        self.load_data()
 
-                    # Update the location and updated_by in the database
-                    self.db.update_location(location, scanned_input, self.operator)
-                    self.db.update_updated_by(self.operator, scanned_input, self.operator)
-                    self.db.update_scanned_status(1, scanned_input, self.operator)
-                    self.db.update_last_updated(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                                scanned_input,
-                                                self.operator)
-                    self.load_data()
+                        # Update the counters
+                        self.scanned_orders += 1
+                        self.remaining_orders -= 1
+                        self.update_counters()
 
-                    # Update the counters
-                    self.scanned_orders += 1
-                    self.remaining_orders -= 1
-                    self.update_counters()
+                        # Clear the input box
+                        self.scanner_input.clear()
 
-                    # Clear the input box
-                    self.scanner_input.clear()
+                        # Emit the signal to refresh the main table
+                        self.refresh_main_table_signal.emit()
 
-                    # Emit the signal to refresh the main table
-                    self.refresh_main_table_signal.emit()
-
+                else:
+                    QMessageBox.information(self, "Information", "Service Order was updated already!")
             else:
-                QMessageBox.information(self, "Information", "Service Order was updated already!")
+                QMessageBox.information(self, "Information", "Service order not found.")
         else:
-            QMessageBox.information(self, "Information", "Service order not found.")
-
+            QMessageBox.warning(self, "Invalid Input", "Please enter a valid service order number.")
+            self.scanner_input.clear()
+            return
         # Clear the input box
         self.scanner_input.clear()
         # self.load_data()
@@ -896,10 +895,15 @@ class ServiceOrderEditorDialog(QDialog):
             before["Comments"] = self.service_order_data[5]
             after["Comments"] = comments
 
-        # Update the database with only the changed values
+        location_exists = self.db.check_location_exists(location)
+        if location_exists:
+            location_warning_dialog = LocationWarningDialog(location)
+            if location_warning_dialog.exec_():
+                pass
+            else:
+                return
         if after:
             self.db.update_service_order(service_order, self.editing_by, before=before, after=after)
-
         self.accept()
 
 
@@ -1098,12 +1102,32 @@ class CalendarDialog(QDialog):
         return self.start_date, self.end_date
 
 
+class LocationWarningDialog(QDialog):
+    def __init__(self, location, parent=None):
+        super().__init__(parent)
+        self.setWindowTitle("Location already exists")
+        self.layout = QVBoxLayout(self)
+
+        self.layout.addWidget(QLabel(f"The location '{location}' already exists.\n"
+                                     "Do you want to add the unit to the current location or choose a different location?"))
+
+        self.button_box = QDialogButtonBox(QDialogButtonBox.Yes | QDialogButtonBox.No)
+        self.button_box.accepted.connect(self.accept)
+        self.button_box.rejected.connect(self.reject)
+        self.layout.addWidget(self.button_box)
+
+    def get_result(self):
+        return self.result()
+
+
 # Define a QDialog for entering a location
 class LocationDialog(QDialog):
-    def __init__(self):
+    location_warning = Signal(str)
+
+    def __init__(self, db):
         super().__init__()
         self.setContentsMargins(5, 5, 5, 5)
-
+        self.db = db
         self.setWindowTitle("Enter Location")
         layout = QVBoxLayout()
 
@@ -1121,6 +1145,9 @@ class LocationDialog(QDialog):
         layout.addLayout(hbox)
         self.location_input.returnPressed.connect(self.accept)
         self.setLayout(layout)
+
+    def check_location_exists(self, location):
+        return self.db.check_location_exists(location)
 
 
 # Define a QDialog for selecting who closed the service order
@@ -1165,7 +1192,20 @@ class OperatorDialog(QDialog):
     def on_button_clicked(self, button):
         button_id = self.button_group.id(button)
         self.selected_operator = self.operators[button_id]
-        self.accept()
+
+        confirmation_message = QMessageBox(self)
+        confirmation_message.setIcon(QMessageBox.Question)
+        confirmation_message.setWindowTitle("Confirm Operator")
+        confirmation_message.setText(f"Is '{self.selected_operator}' the correct operator?")
+        yes_button = confirmation_message.addButton(QMessageBox.Yes)
+        no_button = confirmation_message.addButton(QMessageBox.No)
+
+        confirmation_message.exec_()
+
+        if confirmation_message.clickedButton() == yes_button:
+            self.accept()
+        else:
+            self.selected_operator = None
 
     def get_operator(self):
         return self.selected_operator
