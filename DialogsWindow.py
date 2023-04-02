@@ -32,6 +32,7 @@ class AlignCenterDelegate(QItemDelegate):
         super(AlignCenterDelegate, self).paint(painter, option, index)
 
 
+
 class QRCodeGeneratorDialog(QDialog):
     def __init__(self):
         super().__init__()
@@ -61,8 +62,10 @@ class QRCodeGeneratorDialog(QDialog):
         size_layout = QHBoxLayout()
         width_label = QLabel("Width:")
         self.width_box = QLineEdit()
+        self.width_box.setText("100")
         height_label = QLabel("Height:")
         self.height_box = QLineEdit()
+        self.height_box.setText("100")
         font_size = QLabel("Font Size:")
         self.font_size = QComboBox()
         self.font_size.addItems(["2", "4", "6", "8", "10", "12", "14", "16", "18", "20"])
@@ -249,22 +252,29 @@ class AboutDialog(QDialog):
         super().__init__(parent)
         self.setWindowTitle('About')
         self.setContentsMargins(5, 5, 5, 5)
+        self.resize(400, 300)
         self.init_ui()
 
     def init_ui(self):
         layout = QVBoxLayout()
 
         # Create a header QLabel with larger font size
-        header_label = QLabel("SCMR Management Beta V1")
+        header_label = QLabel("SCMR Management V1")
         header_label.setStyleSheet("font-size: 18px; font-weight: bold;")
-
+        header_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(header_label)
 
         # Create a description QLabel with normal font size
-        description_label = QLabel("This program helps you keep track of service orders.\n\n\n"
-                                   "Created by Vasyl Yakovishak.")
-
+        description_label = QLabel(
+            "The SCMR Management V1 application is a user-friendly desktop tool designed to streamline the process of managing service orders."
+            "Developed using Python and the PySide6 library, this cross-platform application offers an intuitive interface that enables users to view, search, add, and modify service orders with ease. ")
+        description_label.setWordWrap(True)
+        description_label.setAlignment(Qt.AlignCenter)
+        copyright_label = QLabel("© 2023 Vasyl Yakovishak. All rights reserved.")
+        copyright_label.setStyleSheet("font-size: 10px; font-weight: bold;")
+        copyright_label.setAlignment(Qt.AlignCenter)
         layout.addWidget(description_label)
+        layout.addWidget(copyright_label)
 
         close_button = QPushButton("Close")
         close_button.clicked.connect(self.close)
@@ -593,7 +603,7 @@ class RescanOrdersDialog(QDialog):
 
             # If the service order is in the database and not checked out
             if existing_service_order:
-                if existing_service_order[0][-2] == 0:
+                if existing_service_order[0][-2] == "NO":
                     # Display the location dialog
                     location_dialog = LocationDialog()
                     if location_dialog.exec_():
@@ -725,18 +735,14 @@ class ServiceOrderView(QtWidgets.QDialog):
 
         # Add a label and input field for whether the service order was checked out or not
         checked_out_label = QtWidgets.QLabel("Checked Out:")
-        checked_out_status = "Checked out" if bool(self.service_order_info[10]) else "NOT Check out"
-        checked_out_input = QtWidgets.QLineEdit(str(bool(checked_out_status)))
-
-        checked_out_label = QtWidgets.QLabel("Deleted:")
-        checked_out_status = "Yes" if bool(self.service_order_info[11]) else "No"
-        checked_out_input = QtWidgets.QLineEdit(str(bool(checked_out_status)))
-
-        # Display "True" or "False" instead of "1" or "0"
-        checked_out_input.setText(checked_out_status)
-
+        checked_out_input = QtWidgets.QLineEdit(self.service_order_info[10])
         checked_out_input.setReadOnly(True)
         layout.addRow(checked_out_label, checked_out_input)
+
+        delete_label = QtWidgets.QLabel("Deleted:")
+        delete_label_input = QtWidgets.QLineEdit(self.service_order_info[11])
+        delete_label_input.setReadOnly(True)
+        layout.addRow(delete_label, delete_label_input)
 
         # Add some spacing at the bottom of the layout
         layout.addItem(QtWidgets.QSpacerItem(0, 10, QtWidgets.QSizePolicy.Expanding, QtWidgets.QSizePolicy.Minimum))
@@ -841,8 +847,7 @@ class ServiceOrderEditorDialog(QDialog):
         self.status_input = QComboBox()
         self.status_input.addItem("GREEN")
         self.status_input.addItem("YELLOW")
-        self.status_input.addItem("RECEIVING")
-        self.status_input.addItem("FULFILMENT")
+
         self.status_input.setCurrentText(self.service_order_data[4])
         input_layout.addRow(status_label, self.status_input)
 
@@ -896,7 +901,8 @@ class ServiceOrderEditorDialog(QDialog):
             after["Comments"] = comments
 
         location_exists = self.db.check_location_exists(location)
-        if location_exists:
+
+        if location_exists and "Location" in after:
             location_warning_dialog = LocationWarningDialog(location)
             if location_warning_dialog.exec_():
                 pass
@@ -976,13 +982,13 @@ class CalendarDialog(QDialog):
         self.closed_by_label = QLabel("Status")
         filters_layout.addWidget(self.closed_by_label)
         self.status = QComboBox()
-        self.status.addItems(['', 'GREEN', "YELLOW", "RECEIVING", "FULFILMENT"])
+        self.status.addItems(['', 'GREEN', "YELLOW"])
         filters_layout.addWidget(self.status)
 
         layout.addLayout(filters_layout)
 
         # Apply and cancel buttons
-        button_box = QDialogButtonBox(QDialogButtonBox.Apply | QDialogButtonBox.Cancel)
+        button_box = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Apply)
         button_box.button(QDialogButtonBox.Apply).clicked.connect(self.apply_button_clicked)
         button_box.rejected.connect(self.reject)
         layout.addWidget(button_box)
@@ -1111,7 +1117,7 @@ class LocationWarningDialog(QDialog):
         self.layout.addWidget(QLabel(f"The location '{location}' already exists.\n"
                                      "Do you want to add the unit to the current location or choose a different location?"))
 
-        self.button_box = QDialogButtonBox(QDialogButtonBox.Yes | QDialogButtonBox.No)
+        self.button_box = QDialogButtonBox(QDialogButtonBox.No | QDialogButtonBox.Yes)
         self.button_box.accepted.connect(self.accept)
         self.button_box.rejected.connect(self.reject)
         self.layout.addWidget(self.button_box)
@@ -1199,7 +1205,6 @@ class OperatorDialog(QDialog):
         confirmation_message.setText(f"Is '{self.selected_operator}' the correct operator?")
         yes_button = confirmation_message.addButton(QMessageBox.Yes)
         no_button = confirmation_message.addButton(QMessageBox.No)
-
         confirmation_message.exec_()
 
         if confirmation_message.clickedButton() == yes_button:
@@ -1223,20 +1228,16 @@ class StatusDialog(QDialog):
 
         self.green_button = QPushButton("GREEN")
         self.yellow_button = QPushButton("YELLOW")
-        self.fulfilment = QPushButton("FULFILMENT")
-        self.receiving = QPushButton("RECEIVING")
+
         layout.addWidget(self.green_button)
         layout.addWidget(self.yellow_button)
-        layout.addWidget(self.fulfilment)
-        layout.addWidget(self.receiving)
+
         self.setLayout(layout)
 
         self.status = None
 
         self.green_button.clicked.connect(self.set_status_green)
         self.yellow_button.clicked.connect(self.set_status_yellow)
-        self.fulfilment.clicked.connect(self.set_status_fulfilment)
-        self.receiving.clicked.connect(self.set_status_receiving)
 
     def set_status_green(self):
         self.status = "GREEN"
@@ -1244,14 +1245,6 @@ class StatusDialog(QDialog):
 
     def set_status_yellow(self):
         self.status = "YELLOW"
-        self.accept()
-
-    def set_status_fulfilment(self):
-        self.status = "FULFILMENT"
-        self.accept()
-
-    def set_status_receiving(self):
-        self.status = "RECEIVING"
         self.accept()
 
 

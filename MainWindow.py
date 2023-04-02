@@ -7,7 +7,6 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
     QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget, QCalendarWidget, \
     QGroupBox, QGridLayout, QCheckBox, \
     QComboBox, QDialogButtonBox, QMenu
-
 from PySide6.QtGui import QAction
 from PySide6.QtGui import QIcon, QPixmap
 from PySide6.QtCore import Qt, QTimer, Signal
@@ -16,7 +15,6 @@ from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, Comments
     QRCodeGeneratorDialog, LocationWarningDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
-from WindowsLayout import LayoutSettings
 from utils import load_settings
 
 
@@ -51,7 +49,6 @@ class MainWin(QMainWindow):
         self.location_dialog = LocationDialog(self.db)
         self.location_dialog.location_warning.connect(self.show_location_warning)
 
-
         # Create an icon button for displaying the calendar dialog
         calendar_icon = QIcon("calendar_icon.png")
         self.calendar_button = QPushButton(calendar_icon, "")
@@ -83,30 +80,20 @@ class MainWin(QMainWindow):
         # Add menu bar and actions
         menubar = self.menuBar()
 
-        settings_menu = QMenu("Settings", self)
-        menubar.addMenu(settings_menu)
-        tools_menu = menubar.addMenu('Tools')
-
-        qr_code_generator_action = QAction('QR Code Generator', self)
-        qr_code_generator_action.triggered.connect(self.open_qr_code_generator)
-        tools_menu.addAction(qr_code_generator_action)
-
         admin_action = QAction("Admin", self)
-
         admin_action.triggered.connect(self.show_admin_login_dialog)
-        settings_menu.addAction(admin_action)
+        menubar.addAction(admin_action)
 
         tutorial_action = QAction("Tutorial", self)
         tutorial_action.triggered.connect(self.show_tutorial)
-        settings_menu.addAction(tutorial_action)
+        menubar.addAction(tutorial_action)
 
-        exit_action = QAction("Exit", self)
-        exit_action.triggered.connect(self.close)
-        settings_menu.addAction(exit_action)
+        qr_code_generator_action = QAction("QR Code Generator", self)
+        qr_code_generator_action.triggered.connect(self.open_qr_code_generator)
+        menubar.addAction(qr_code_generator_action)
 
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about_dialog)
-
         menubar.addAction(about_action)
 
         # Create a QVBoxLayout for delete button
@@ -128,6 +115,7 @@ class MainWin(QMainWindow):
 
         # Add the QVBoxLayout to the main layout
         main_layout.addLayout(input_buttons_layout)
+
 
     def open_qr_code_generator(self):
         qr_code_generator_dialog = QRCodeGeneratorDialog()
@@ -207,7 +195,7 @@ class MainWin(QMainWindow):
             service_order = self.table_widget.item(selected_row, 0).text()
 
             # Delete the service order from the database
-            self.db.delete_service_order(1, service_order, deleted_by)
+            self.db.delete_service_order("YES", service_order, deleted_by)
 
             # Remove the row from the table
             self.table_widget.removeRow(selected_row)
@@ -273,7 +261,7 @@ class MainWin(QMainWindow):
             # Check if the service order is checked out
             checked_out = existing_service_order[0][-3]
             deleted = existing_service_order[0][-2]
-            if existing_service_order and checked_out != 0 or deleted != 0:
+            if existing_service_order and checked_out != "NO" or deleted != "NO":
                 service_order_dialog = ServiceOrderView(existing_service_order[0])
                 service_order_dialog.exec_()
                 return

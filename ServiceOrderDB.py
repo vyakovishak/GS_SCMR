@@ -67,9 +67,8 @@ class ServiceOrderDB:
                 UpdatedBy VARCHAR(255),
                 CheckOutBy VARCHAR(255),
                 CheckOutDate DATETIME,
-                CheckedOut BOOLEAN DEFAULT FALSE,
-                
-                CFI BOOLEAN DEFAULT FALSE,
+                CheckedOut VARCHAR(255) DEFAULT 'NO',
+                CFI VARCHAR(255) DEFAULT 'NO',
                 Scanned BOOLEAN DEFAULT FALSE
             );"""
 
@@ -131,11 +130,11 @@ class ServiceOrderDB:
         return self.execute(SQL_COMMAND, parameters=(so, ), fetchall=True)
 
     def select_all_unchecked_out(self):
-        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 AND CFI=0"
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut='NO' AND CFI='NO'"
         return self.execute(SQL_COMMAND, fetchall=True)
 
     def select_all_scanned_out(self):
-        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut=0 AND Scanned=0 AND CFI=0"
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut='NO' AND Scanned=0 AND CFI='NO'"
         return self.execute(SQL_COMMAND, fetchall=True)
 
     # Updates the check-out operator for a given service order
@@ -146,7 +145,6 @@ class ServiceOrderDB:
         before_data = {"CheckedOut": current_data_tuple[0], "CheckoutDate": current_data_tuple[1],
                        "CheckOutBy": current_data_tuple[2]}
         after_data = {"CheckedOut": status, "CheckoutDate": timestamp, "CheckOutBy": operator}
-
         self.log_update("Checkout", ServiceOrder=so, operator=operator, before=before_data, after=after_data)
 
         SQL_COMMAND = "UPDATE ServiceOrders SET CheckedOut = ?, CheckoutDate = ?, CheckOutBy = ? WHERE ServiceOrder=?"
@@ -194,7 +192,7 @@ class ServiceOrderDB:
             :param location: The location to check.
             :return: True if the location exists, False otherwise.
         """
-        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE Location = ?"
+        SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE Location = ? AND CheckedOut='NO' AND CFI='NO'"
         result = self.execute(SQL_COMMAND, parameters=(location,), fetchall=True)
         return len(result) > 0
 
@@ -313,7 +311,7 @@ class ServiceOrderDB:
                         operator=operator,
                         before={"CFI": current_data},
                         after={"CFI": status})
-        SQL_COMMAND = "UPDATE ServiceOrders SET CFI = 1 WHERE ServiceOrder=?"
+        SQL_COMMAND = "UPDATE ServiceOrders SET CFI = 'YES' WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(so,), commit=True)
 
     def log_update(self, operation, operator=None, ServiceOrder=None, before={}, after={}):

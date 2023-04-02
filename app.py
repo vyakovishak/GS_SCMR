@@ -3,10 +3,11 @@ import sys
 from pathlib import Path
 from MainWindow import MainWin
 from DialogsWindow import WelcomeScreen
+from ServiceOrderDB import ServiceOrderDB
+
 
 def main():
     app = QApplication(sys.argv)
-
     config_path = Path("config.ini")
     if not config_path.exists():
         welcome_dialog = WelcomeScreen()
@@ -15,8 +16,8 @@ def main():
 
     main_window = MainWin()
     main_window.show()
-
     sys.exit(app.exec())
+
 
 if __name__ == "__main__":
     main()
