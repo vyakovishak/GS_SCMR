@@ -127,7 +127,7 @@ class ServiceOrderDB:
     # Selects all service orders that are not checked out
     def select_service_order(self, so):
         SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE ServiceOrder=?"
-        return self.execute(SQL_COMMAND, parameters=(so, ), fetchall=True)
+        return self.execute(SQL_COMMAND, parameters=(so,), fetchall=True)
 
     def select_all_unchecked_out(self):
         SQL_COMMAND = "SELECT * FROM ServiceOrders WHERE CheckedOut='NO' AND CFI='NO'"
@@ -140,7 +140,7 @@ class ServiceOrderDB:
     # Updates the check-out operator for a given service order
     def update_checkout_info(self, status, timestamp, operator, so):
         current_data = self.select_unit(column='CheckedOut, CheckoutDate, CheckOutBy', ServiceOrder=so)  # [(0, '', '')]
-        print(current_data)
+
         current_data_tuple = current_data[0]
         before_data = {"CheckedOut": current_data_tuple[0], "CheckoutDate": current_data_tuple[1],
                        "CheckOutBy": current_data_tuple[2]}
@@ -157,6 +157,18 @@ class ServiceOrderDB:
                         after={"LastUpdated": last_updated})
         SQL_COMMAND = "UPDATE ServiceOrders SET LastUpdated=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(last_updated, so), commit=True)
+
+    def rescan_service_order_update(self, location, updated_by, scanned_status, last_updated, so, operator):
+        current_location = self.select_unit(column='Location', ServiceOrder=so)
+        current_updated_by = self.select_unit(column='UpdatedBy', ServiceOrder=so)
+
+        self.log_update("Rescan", ServiceOrder=so, operator=operator,
+                        before={"Location": current_location[0][0], "UpdatedBy": current_updated_by[0][0]},
+                        after={"Location": location, "UpdatedBy": updated_by})
+
+        SQL_COMMAND = """UPDATE ServiceOrders SET Location=?, UpdatedBy=?, Scanned=?, LastUpdated=? WHERE ServiceOrder=?"""
+        return self.execute(SQL_COMMAND, parameters=(location, updated_by, scanned_status, last_updated, so),
+                            commit=True)
 
     def update_scanned_status(self, scanned_status, so, operator):
         current_scanned_status = self.select_unit(column='Scanned', ServiceOrder=so)

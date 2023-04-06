@@ -95,19 +95,19 @@ class ServiceOrderUpdatesLogTable(QTableWidget):
         service_order_key = str(self.service_order)
         updates = data.get(service_order_key, [])
 
-        self.setColumnCount(8)  # Increase the column count by one
+        self.setColumnCount(9)  # Increase the column count by one
         self.setRowCount(len(updates))
         self.setHorizontalHeaderLabels(
             ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status",
-             "Comments", ])  # Add "Operator" to the list of header labels
+             "Comments", "Updated By"])  # Add "Operator" to the list of header labels
         self.horizontalHeader().setStretchLastSection(True)
 
         for i, update in enumerate(sorted(updates, key=lambda x: x['timestamp'])):
             self.setItem(i, 0, QTableWidgetItem(update['timestamp']))
             self.setItem(i, 1, QTableWidgetItem(update['operation']))
-            self.setItem(i, 2, QTableWidgetItem(
-                update['operator']))  # Set QTableWidgetItem for the new column with operator data
-            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments'], start=3):
+            self.setItem(i, 2, QTableWidgetItem(update['operator']))
+            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'UpdatedBy'],
+                                    start=3):
                 if key in update['changes']:
                     before = str(update['changes'][key]['before']) if update['changes'][key]['before'] else ""
                     after = str(update['changes'][key]['after'])

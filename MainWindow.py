@@ -7,8 +7,7 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
     QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget, QCalendarWidget, \
     QGroupBox, QGridLayout, QCheckBox, \
     QComboBox, QDialogButtonBox, QMenu
-from PySide6.QtGui import QAction
-from PySide6.QtGui import QIcon, QPixmap
+from PySide6.QtGui import QIcon, QPixmap, QAction
 from PySide6.QtCore import Qt, QTimer, Signal
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
     load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
@@ -21,7 +20,7 @@ from utils import load_settings
 # Define the main window class
 class MainWin(QMainWindow):
     # Initialize the window
-    location_warning = Signal(str)
+    refresh_main_table_signal = Signal(str)
 
     def __init__(self):
         super(MainWin, self).__init__()
@@ -269,9 +268,9 @@ class MainWin(QMainWindow):
                 operator_dialog = OperatorDialog()
                 if operator_dialog.exec_():
                     check_out_by = operator_dialog.get_operator()
-                    if check_out_by != 1:
+                    if check_out_by != "YES":
                         # Update the CheckOut value, CheckOutDate, and CheckOutBy in the database
-                        self.db.update_checkout_info(1, datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+                        self.db.update_checkout_info("YES", datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                                                      check_out_by, scanned_input)
                         # Update the table
                         self.table_widget.load_data()

@@ -1,12 +1,13 @@
 # DialogsWindow.py
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
-from PySide6.QtCore import QDate, Qt, QPoint, QDir
+from PySide6.QtCore import QDate, Qt, QPoint, QDir, QByteArray
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont, QPixmap, QImage, QPainter, QPen
+from PySide6.QtPrintSupport import QPrinter
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem, \
-    QSplitter, QListView, QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget
+    QSplitter, QListView, QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget, QApplication
 import qrcode
 from PIL.ImageQt import ImageQt
 from PIL import Image, ImageDraw, ImageFont
@@ -20,6 +21,19 @@ from utils import load_settings
 import re
 
 
+class CenteredDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+
+        self.center_on_screen()
+
+    def center_on_screen(self):
+        screen = QApplication.primaryScreen().geometry()
+        self_geometry = self.frameGeometry()
+        center_point = screen.center()
+        self_geometry.moveCenter(center_point)
+        self.move(self_geometry.topLeft())
+
 class AlignCenterDelegate(QItemDelegate):
     def __init__(self, parent=None):
         super(AlignCenterDelegate, self).__init__(parent)
@@ -32,13 +46,13 @@ class AlignCenterDelegate(QItemDelegate):
         super(AlignCenterDelegate, self).paint(painter, option, index)
 
 
-
 class QRCodeGeneratorDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("QR Code Generator")
+
         self.resize(1080, 720)
-        self.qr_codes_per_row = 3
+        self.qr_codes_per_row = 5
 
         self.generated_qr_codes = []
 
@@ -68,7 +82,7 @@ class QRCodeGeneratorDialog(QDialog):
         self.height_box.setText("100")
         font_size = QLabel("Font Size:")
         self.font_size = QComboBox()
-        self.font_size.addItems(["2", "4", "6", "8", "10", "12", "14", "16", "18", "20"])
+        self.font_size.addItems(["8", "10", "12", "14", "16", "18", "20"])
         size_layout.addWidget(width_label)
         size_layout.addWidget(self.width_box)
         size_layout.addWidget(height_label)
@@ -76,6 +90,17 @@ class QRCodeGeneratorDialog(QDialog):
         size_layout.addWidget(font_size)
         size_layout.addWidget(self.font_size)
         layout.addLayout(size_layout)
+
+        text_position_label = QLabel("Text Position:")
+        self.text_position = QComboBox()
+        self.text_position.addItems(["Top", "Bottom", "Left", "Right"])
+        size_layout.addWidget(text_position_label)
+        size_layout.addWidget(self.text_position)
+
+        self.size_warning = QLabel("Size is too small. Minimum is 35 for both width and height.")
+        self.size_warning.setStyleSheet("color: red;")
+        self.size_warning.hide()
+        layout.addWidget(self.size_warning)
 
         button_layout = QHBoxLayout()
         create_button = QPushButton("Create")
@@ -96,7 +121,15 @@ class QRCodeGeneratorDialog(QDialog):
 
         width = int(self.width_box.text())
         height = int(self.height_box.text())
+
+        if width < 35 or height < 35:
+            self.size_warning.show()
+            return
+        else:
+            self.size_warning.hide()
+
         font_size = int(self.font_size.currentText())
+        text_position = self.text_position.currentText()
 
         for text in texts:
             qr = qrcode.QRCode(
@@ -112,18 +145,43 @@ class QRCodeGeneratorDialog(QDialog):
             img = img.resize((width, height), Image.ANTIALIAS)
 
             img_w, img_h = img.size
-            background = Image.new('RGBA', (img_w, img_h + 20), (255, 255, 255, 255))
-            background.paste(img, (0, 0))
+            text_w, text_h = ImageDraw.Draw(img).textsize(text, font=ImageFont.truetype("arial.ttf", font_size))
 
-            draw = ImageDraw.Draw(background)
-            font = ImageFont.truetype("arial.ttf", font_size)
-            text_w, text_h = draw.textsize(text, font=font)
-            draw.text(((img_w - text_w) // 2, img_h), text, font=font, fill="black")
+            if text_position == "Top":
+                background = Image.new('RGBA', (img_w, img_h + 20), (255, 255, 255, 255))
+                background.paste(img, (0, 20))
+                draw = ImageDraw.Draw(background)
+                draw.text(((img_w - text_w) // 2, 0), text, font=ImageFont.truetype("arial.ttf", font_size),
+                          fill="black")
 
-            self.display_qr_code(background, text)
+            elif text_position == "Bottom":
+                background = Image.new('RGBA', (img_w, img_h + 20), (255, 255, 255, 255))
+                background.paste(img, (0, 0))
+                draw = ImageDraw.Draw(background)
+                draw.text(((img_w - text_w) // 2, img_h), text, font=ImageFont.truetype("arial.ttf", font_size),
+                          fill="black")
+
+            elif text_position == "Left":
+                background = Image.new('RGBA', (img_w + text_w + 10, img_h), (255, 255, 255, 255))
+                background.paste(img, (text_w + 10, 0))
+                draw = ImageDraw.Draw(background)
+
+                draw.text((10, (img_h - text_h) // 2), text, font=ImageFont.truetype("arial.ttf", font_size),
+                          fill="black")
+
+            elif text_position == "Right":
+                background = Image.new('RGBA', (img_w + text_w + 10, img_h), (255, 255, 255, 255))
+                background.paste(img, (0, 0))
+                draw = ImageDraw.Draw(background)
+                draw.text((img_w, (img_h - text_h) // 2), text, font=ImageFont.truetype("arial.ttf", font_size),
+                          fill="black")
+
+            qimg = QImage(QByteArray(background.tobytes()), background.width, background.height, QImage.Format_RGBA8888)
+            pixmap = QPixmap.fromImage(qimg)
+            self.display_qr_code(pixmap, text)
 
     def display_qr_code(self, img, label_text):
-        pixmap = QPixmap.fromImage(ImageQt(img))
+        pixmap = img
 
         current_index = len(self.generated_qr_codes)
         row = current_index // self.qr_codes_per_row
@@ -203,7 +261,7 @@ class QRCodeGeneratorDialog(QDialog):
 
         printer = QPrinter(QPrinter.HighResolution)
         printer.setOutputFormat(QPrinter.PdfFormat)
-        printer.setPaperSize(QPrinter.A4)
+        printer.setPageSize(QPrinter)
         printer.setOutputFileName(selected_filter)
 
         painter = QPainter()
@@ -478,6 +536,8 @@ class CustomQDialog(QDialog):
 
 
 class RescanOrdersDialog(QDialog):
+    refresh_main_table_signal = Signal()
+
     def __init__(self, db: ServiceOrderDB, operator: str):
         super().__init__()
         self.setContentsMargins(5, 5, 5, 5)
@@ -586,7 +646,7 @@ class RescanOrdersDialog(QDialog):
         reply = QMessageBox.warning(self, "Warning", "Are you sure you want to delete this service order?",
                                     QMessageBox.Yes | QMessageBox.No)
         if reply == QMessageBox.Yes:
-            self.db.delete_service_order(status=1, so=service_order[0], operator=self.operator)
+            self.db.delete_service_order(status='YES', so=service_order[0], operator=self.operator)
             self.load_data()
 
     def update_counters(self):
@@ -605,17 +665,16 @@ class RescanOrdersDialog(QDialog):
             if existing_service_order:
                 if existing_service_order[0][-2] == "NO":
                     # Display the location dialog
-                    location_dialog = LocationDialog()
+                    location_dialog = LocationDialog(self.db)
                     if location_dialog.exec_():
                         location = location_dialog.location_input.text().upper()
 
-                        # Update the location and updated_by in the database
-                        self.db.update_location(location, scanned_input, self.operator)
-                        self.db.update_updated_by(self.operator, scanned_input, self.operator)
-                        self.db.update_scanned_status(1, scanned_input, self.operator)
-                        self.db.update_last_updated(datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-                                                    scanned_input,
-                                                    self.operator)
+                        location = location_dialog.location_input.text().upper()
+                        last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+                        # Update the location, updated_by, scanned_status, and last_updated in the database
+                        self.db.rescan_service_order_update(location, self.operator, 1, last_updated, scanned_input,
+                                                            self.operator)
                         self.load_data()
 
                         # Update the counters
@@ -774,7 +833,7 @@ class ServiceOrderView(QtWidgets.QDialog):
         table.setColumnCount(9)  # Update the column count to 9
         table.setRowCount(len(updates))
         table.setHorizontalHeaderLabels(
-            ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status", "Comments",
+            ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status", "Comments", "Updated By", "Checked Out"
              "CFI"])  # Update the header labels
         table.horizontalHeader().setStretchLastSection(True)
 
@@ -782,7 +841,7 @@ class ServiceOrderView(QtWidgets.QDialog):
             table.setItem(i, 0, QTableWidgetItem(update['timestamp']))
             table.setItem(i, 1, QTableWidgetItem(update['operation']))
             table.setItem(i, 2, QTableWidgetItem(update['operator']))  # Add operator to the table
-            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'CFI'], start=3):
+            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'CFI',"Updated By", "Checked Out"], start=3):
                 if key in update['changes']:
                     before = update['changes'][key]['before']
                     after = update['changes'][key]['after']
@@ -1065,7 +1124,7 @@ class CalendarDialog(QDialog):
                 query += f" AND DATE(CheckOutDate) BETWEEN '{start_date}' AND '{end_date}'"
 
         if checkout:
-            query += f" AND CheckedOut=1"
+            query += f" AND CheckedOut='YES'"
 
         if closed_by:
             query += f" AND ClosedBy='{closed_by}'"
@@ -1077,7 +1136,7 @@ class CalendarDialog(QDialog):
             query += f" AND Status='{status}'"
 
         if deleted:
-            query += f" AND CFI=1"
+            query += f" AND CFI='YES'"
 
         # Fetch data from the database
         results = self.db.execute(query, fetchall=True)

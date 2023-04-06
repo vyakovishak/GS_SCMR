@@ -1,5 +1,6 @@
 # utils.py
 import json
+from PySide6.QtGui import QScreen
 
 
 def load_settings():
@@ -7,3 +8,4 @@ def load_settings():
         all_operators = json.load(settings_file)
 
         return all_operators['Operators']['ALL']
+
