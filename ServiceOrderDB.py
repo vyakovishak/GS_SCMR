@@ -69,7 +69,11 @@ class ServiceOrderDB:
                 CheckOutDate DATETIME,
                 CheckedOut VARCHAR(255) DEFAULT 'NO',
                 CFI VARCHAR(255) DEFAULT 'NO',
-                Scanned BOOLEAN DEFAULT FALSE
+                Scanned BOOLEAN DEFAULT FALSE,
+                ResCode TEXT,
+                BOPTime INT,
+                FOPTime INT,
+                TotalTime INT
             );"""
 
         self.execute(sql, commit=True)

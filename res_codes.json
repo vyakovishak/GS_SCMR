@@ -1,5 +1,5 @@
 {
-  "apple": {
+  "Apple": {
     "ABAT": {
       "rescode": "ABAT",
       "description": "Apple Battery Repair",
@@ -131,7 +131,7 @@
       "compatible": "Standalone Res Code"
     }
   },
-  "samsung": {
+  "Samsung": {
     "SFRN": {
       "rescode": "SFRN",
       "description": "Samsung Front Screen Repair",
@@ -343,7 +343,7 @@
       "compatible": "Cannot be used in combination with other resolution codes."
     }
   },
-  "geeksquad": {
+  "GeekSquad": {
     "GSIS": {
       "rescode": "GSIS",
       "description": "Geek Squad In-Store Service",

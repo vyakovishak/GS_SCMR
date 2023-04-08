@@ -259,8 +259,10 @@ class MainWin(QMainWindow):
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
         if len(existing_service_order) != 0:
             # Check if the service order is checked out
-            checked_out = existing_service_order[0][-3]
-            deleted = existing_service_order[0][-2]
+            checked_out = existing_service_order[0][-7]
+            deleted = existing_service_order[0][-6]
+            print(checked_out)
+            print(deleted)
             if existing_service_order and checked_out != "NO" or deleted != "NO":
                 service_order_dialog = ServiceOrderView(existing_service_order[0])
                 service_order_dialog.exec_()

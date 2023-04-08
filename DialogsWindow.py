@@ -36,6 +36,7 @@ class CenteredDialog(QDialog):
         self_geometry.moveCenter(center_point)
         self.move(self_geometry.topLeft())
 
+
 class AlignCenterDelegate(QItemDelegate):
     def __init__(self, parent=None):
         super(AlignCenterDelegate, self).__init__(parent)
@@ -839,15 +840,18 @@ class ServiceOrderView(QtWidgets.QDialog):
         table.setColumnCount(9)  # Update the column count to 9
         table.setRowCount(len(updates))
         table.setHorizontalHeaderLabels(
-            ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status", "Comments", "Updated By", "Checked Out"
-             "CFI"])  # Update the header labels
+            ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status", "Comments",
+             "Updated By", "Checked Out"
+                           "CFI"])  # Update the header labels
         table.horizontalHeader().setStretchLastSection(True)
 
         for i, update in enumerate(sorted(updates, key=lambda x: x['timestamp'])):
             table.setItem(i, 0, QTableWidgetItem(update['timestamp']))
             table.setItem(i, 1, QTableWidgetItem(update['operation']))
             table.setItem(i, 2, QTableWidgetItem(update['operator']))  # Add operator to the table
-            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'CFI',"Updated By", "Checked Out"], start=3):
+            for j, key in enumerate(
+                    ['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'CFI', "Updated By",
+                     "Checked Out"], start=3):
                 if key in update['changes']:
                     before = update['changes'][key]['before']
                     after = update['changes'][key]['after']
@@ -871,6 +875,7 @@ class ServiceOrderView(QtWidgets.QDialog):
         table.setSortingEnabled(True)
 
         layout.addRow(table)
+
 
 class ResCodeDialog(QDialog):
     def __init__(self, categories, res_codes, compatibility):
@@ -954,6 +959,68 @@ class ResCodeDialog(QDialog):
         return self.selected_codes
 
 
+class ResCodeManagementDialog(QDialog):
+    def __init__(self, res_code_data):
+        super().__init__()
+        self.setWindowTitle("Res Code Management")
+        self.res_code_data = res_code_data
+        self.resize(320,240)
+        layout = QVBoxLayout()
+
+        categories_layout = QHBoxLayout()
+        categories = ["Apple", "Samsung", "GeekSquad"]
+        self.category_buttons = {}
+
+        for category in categories:
+            button = QPushButton(category)
+            button.clicked.connect(self.show_res_codes)
+            categories_layout.addWidget(button)
+            self.category_buttons[category] = button
+
+        layout.addLayout(categories_layout)
+
+        self.res_code_layout = QGridLayout()
+        layout.addLayout(self.res_code_layout)
+
+        self.done_button = QPushButton("Done")
+        self.done_button.clicked.connect(self.accept)
+        layout.addWidget(self.done_button)
+
+        self.setLayout(layout)
+
+
+    def show_res_codes(self):
+        self.clear_res_code_layout()
+        sender = self.sender()
+        category = sender.text()
+
+        if isinstance(category, QLabel):
+            category = category.text()
+
+        res_codes = self.res_code_data[category]
+
+        row = 0
+        col = 0
+        for code, data in res_codes.items():
+            button = QPushButton(code)
+            button.clicked.connect(self.select_res_code)
+            self.res_code_layout.addWidget(button, row, col)
+            col += 1
+            if col == 3:
+                col = 0
+                row += 1
+
+    def select_res_code(self):
+        sender = self.sender()
+        res_code = sender.text()
+        self.selected_res_code = res_code
+        self.accept()
+
+    def clear_res_code_layout(self):
+        for i in reversed(range(self.res_code_layout.count())):
+            self.res_code_layout.itemAt(i).widget().deleteLater()
+
+
 class ServiceOrderEditorDialog(QDialog):
     def __init__(self, service_order_data, db: ServiceOrderDB, editing_by):
         super().__init__()
@@ -964,51 +1031,83 @@ class ServiceOrderEditorDialog(QDialog):
         self.all_operators = load_settings()
         self.setWindowTitle("Edit Service Order")
         self.service_order_data = service_order_data
-        self.resize(1080, 480)
+        self.resize(1444, 720)
         layout = QVBoxLayout()
 
-        # Create a QFormLayout for the input fields and labels
-        input_layout = QFormLayout()
+        # Create QHBoxLayout to hold General Information and Res Code Information side by side
+        main_horizontal_layout = QHBoxLayout()
+
+        # General Information layout
+        general_info_groupbox = QGroupBox("General Information")
+        general_info_layout = QFormLayout()
 
         # Service Order Number (unchangeable)
         so_number_label = QLabel("Service Order:")
         so_number_value = QLabel(str(self.service_order_data[0]))
-
-        input_layout.addRow(so_number_label, so_number_value)
+        general_info_layout.addRow(so_number_label, so_number_value)
 
         # Location
         location_label = QLabel("Location:")
         self.location_input = QLineEdit(self.service_order_data[1])
-        input_layout.addRow(location_label, self.location_input)
+        general_info_layout.addRow(location_label, self.location_input)
 
         # Closed By (dropdown)
         closed_by_label = QLabel("Closed By:")
         self.closed_by_input = QComboBox()
         self.closed_by_input.addItems(self.all_operators)
         self.closed_by_input.setCurrentText(self.service_order_data[3])
-        input_layout.addRow(closed_by_label, self.closed_by_input)
+        general_info_layout.addRow(closed_by_label, self.closed_by_input)
 
         # Status (dropdown)
         status_label = QLabel("Status:")
         self.status_input = QComboBox()
         self.status_input.addItem("GREEN")
         self.status_input.addItem("YELLOW")
-
         self.status_input.setCurrentText(self.service_order_data[4])
-        input_layout.addRow(status_label, self.status_input)
+        general_info_layout.addRow(status_label, self.status_input)
 
         # Comments
         comments_label = QLabel("Comments:")
         self.comments_input = QLineEdit(self.service_order_data[5])
-        input_layout.addRow(comments_label, self.comments_input)
+        general_info_layout.addRow(comments_label, self.comments_input)
 
-        # Wrap input_layout with a QHBoxLayout to center it
-        input_centered_layout = QHBoxLayout()
-        input_centered_layout.addStretch()
-        input_centered_layout.addLayout(input_layout)
-        input_centered_layout.addStretch()
+        general_info_groupbox.setLayout(general_info_layout)
+        main_horizontal_layout.addWidget(general_info_groupbox)  # fixed variable name
 
-        layout.addLayout(input_centered_layout)
+        # Create a QGroupBox for the Res Code related input fields
+        res_code_info_groupbox = QGroupBox("Res Code Information")
+        res_code_input_layout = QFormLayout()
+
+        # Res Code
+        res_code_label = QLabel("Res Code:")
+        self.res_code_value = QLabel(str(self.service_order_data[1]))
+        res_code_input_layout.addRow(res_code_label, self.res_code_value)
+
+        # BOP Time
+        bop_time_label = QLabel("BOP Time:")
+        self.bop_time_value = QLabel(str(self.service_order_data[1]))
+        res_code_input_layout.addRow(bop_time_label, self.bop_time_value)
+
+        # FOP
+        fop_label = QLabel("FOP:")
+        self.fop_value = QLabel(str(self.service_order_data[1]))
+        res_code_input_layout.addRow(fop_label, self.fop_value)
+
+        # Total Time for BOP and FOP
+        total_time_label = QLabel("Total Time for BOP and FOP:")
+        self.total_time_value = QLabel(str(self.service_order_data[1]))
+        res_code_input_layout.addRow(total_time_label, self.total_time_value)
+
+        # Add Res Codes button
+        self.add_res_codes_button = QPushButton("Add Res Codes")
+        self.add_res_codes_button.clicked.connect(self.update_res_codes)
+        res_code_input_layout.addRow(self.add_res_codes_button)
+
+        res_code_info_groupbox.setLayout(res_code_input_layout)
+
+        main_horizontal_layout.addWidget(res_code_info_groupbox)
+        main_horizontal_layout.addSpacing(300)
+        layout.addLayout(main_horizontal_layout)
 
         # Submit button
         submit_button = QPushButton("Submit")
@@ -1017,6 +1116,10 @@ class ServiceOrderEditorDialog(QDialog):
 
         from TableWidget import ServiceOrderUpdatesLogTable
         log_table = ServiceOrderUpdatesLogTable(service_order_data[0], self)
+        self.location_input.setFixedSize(200, 25)
+        self.closed_by_input.setFixedSize(200, 25)
+        self.status_input.setFixedSize(200, 25)
+        self.comments_input.setFixedSize(200, 25)
         layout.addWidget(log_table)
         self.setLayout(layout)
 
@@ -1057,6 +1160,29 @@ class ServiceOrderEditorDialog(QDialog):
         if after:
             self.db.update_service_order(service_order, self.editing_by, before=before, after=after)
         self.accept()
+
+    def show_res_code_management_dialog(self):
+
+        # Instantiate the ResCodeManagementDialog with the res code data
+        res_code_management_dialog = ResCodeManagementDialog(res_code_data)
+        result = res_code_management_dialog.exec_()
+
+        if result == QDialog.Accepted:
+            selected_res_codes = res_code_management_dialog.get_selected_res_codes()
+            self.update_res_codes(selected_res_codes)
+
+    def update_res_codes(self):
+        # Read the res code data from a JSON file
+        with open('res_codes.json', 'r') as f:
+            res_code_data = json.load(f)
+
+        res_code_management_dialog = ResCodeManagementDialog(res_code_data)
+        res_code_management_dialog.exec_()
+        selected_res_codes = [
+            res_code_management_dialog.selected_res_code] if res_code_management_dialog.result() else []
+        res_codes_str = ', '.join(selected_res_codes)
+        self.res_code_value.setText(res_codes_str)
+
 
 
 class CalendarDialog(QDialog):
@@ -1274,7 +1400,6 @@ class LocationWarningDialog(QDialog):
 
 # Define a QDialog for entering a location
 class LocationDialog(QDialog):
-
     location_warning = Signal(str)
 
     def __init__(self, db, location=None):
@@ -1285,9 +1410,6 @@ class LocationDialog(QDialog):
         layout = QVBoxLayout()
 
         # Create a QHBoxLayout for the current location label
-        hbox_current = QHBoxLayout()
-        self.current_location = QLabel(f"Current Location: {location}")
-        hbox_current.addWidget(self.current_location)
 
         # Create a QHBoxLayout for the new location label and input box
         hbox_new = QHBoxLayout()
@@ -1295,9 +1417,13 @@ class LocationDialog(QDialog):
         self.location_input = QLineEdit()
         hbox_new.addWidget(self.label)
         hbox_new.addWidget(self.location_input)
+        if location is not None:
+            hbox_current = QHBoxLayout()
+            self.current_location = QLabel(f"Current Location: {location}")
+            hbox_current.addWidget(self.current_location)
+            # Add the QHBoxLayouts to the main QVBoxLayout
+            layout.addLayout(hbox_current)
 
-        # Add the QHBoxLayouts to the main QVBoxLayout
-        layout.addLayout(hbox_current)
         layout.addLayout(hbox_new)
 
         self.location_input.returnPressed.connect(self.accept)
@@ -1305,8 +1431,6 @@ class LocationDialog(QDialog):
 
     def check_location_exists(self, location):
         return self.db.check_location_exists(location)
-
-
 
 
 # Define a QDialog for selecting who closed the service order
