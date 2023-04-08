@@ -19,7 +19,7 @@ from PySide6.QtCore import Signal
 import json
 import datetime
 from PySide6 import QtWidgets
-from utils import load_settings
+from utils import load_settings, get_res_code
 import re
 
 
@@ -877,6 +877,39 @@ class ServiceOrderView(QtWidgets.QDialog):
         layout.addRow(table)
 
 
+class ResCodesGroupBox(QGroupBox):
+    def __init__(self, category, res_code_data, parent=None):
+        super().__init__(category, parent)
+        self.category = category
+        self.res_code_data = res_code_data
+        self.res_codes_layout = QGridLayout()
+        self.buttons = {}
+        self.setLayout(self.res_codes_layout)
+
+        row = 0
+        col = 0
+        for code, data in self.res_code_data[self.category].items():
+            button = QPushButton(code)
+            button.clicked.connect(parent.select_res_code)
+            self.res_codes_layout.addWidget(button, row, col)
+            self.buttons[code] = button
+            col += 1
+            if col == 3:
+                col = 0
+                row += 1
+
+    def set_compatibility(self, selected_res_code):
+        selected_data = self.res_code_data[self.category][selected_res_code]
+        compatible_codes = selected_data["compatible"].split(", ")
+        for code, button in self.buttons.items():
+            if code == selected_res_code:
+                button.setStyleSheet("background-color: grey")
+            elif code in compatible_codes:
+                button.setStyleSheet("background-color: green")
+            else:
+                button.setStyleSheet("background-color: red")
+
+
 class ResCodeDialog(QDialog):
     def __init__(self, categories, res_codes, compatibility):
         super().__init__()
@@ -964,9 +997,10 @@ class ResCodeManagementDialog(QDialog):
         super().__init__()
         self.setWindowTitle("Res Code Management")
         self.res_code_data = res_code_data
-        self.resize(320,240)
+        self.resize(320, 240)
         layout = QVBoxLayout()
 
+        categories_group_box = QGroupBox("Categories")
         categories_layout = QHBoxLayout()
         categories = ["Apple", "Samsung", "GeekSquad"]
         self.category_buttons = {}
@@ -977,25 +1011,41 @@ class ResCodeManagementDialog(QDialog):
             categories_layout.addWidget(button)
             self.category_buttons[category] = button
 
-        layout.addLayout(categories_layout)
+        categories_group_box.setLayout(categories_layout)
+        layout.addWidget(categories_group_box)
 
+        self.res_codes_group_box = QGroupBox()
         self.res_code_layout = QGridLayout()
-        layout.addLayout(self.res_code_layout)
+        self.res_codes_group_box.setLayout(self.res_code_layout)
+        layout.addWidget(self.res_codes_group_box)
+
+        self.selected_res_codes_input = QLineEdit()
+        self.selected_res_codes_input.setReadOnly(True)
+        layout.addWidget(self.selected_res_codes_input)
 
         self.done_button = QPushButton("Done")
         self.done_button.clicked.connect(self.accept)
         layout.addWidget(self.done_button)
 
-        self.setLayout(layout)
+        self.clear_button = QPushButton("Clear")
+        self.clear_button.clicked.connect(self.clear_selected_res_codes)
+        layout.addWidget(self.clear_button)
 
+        self.setLayout(layout)
+        self.res_code_buttons = {}
+
+    def clear_selected_res_codes(self):
+        self.selected_res_codes_input.clear()
+        for button in self.res_code_buttons.values():
+            button.setDisabled(False)
+            button.setStyleSheet("")
 
     def show_res_codes(self):
         self.clear_res_code_layout()
         sender = self.sender()
         category = sender.text()
 
-        if isinstance(category, QLabel):
-            category = category.text()
+        self.res_codes_group_box.setTitle(category)
 
         res_codes = self.res_code_data[category]
 
@@ -1005,16 +1055,47 @@ class ResCodeManagementDialog(QDialog):
             button = QPushButton(code)
             button.clicked.connect(self.select_res_code)
             self.res_code_layout.addWidget(button, row, col)
+            self.res_code_buttons[code] = button
             col += 1
             if col == 3:
                 col = 0
                 row += 1
+        self.res_code_layout.setRowStretch(row, 1)
 
     def select_res_code(self):
         sender = self.sender()
         res_code = sender.text()
-        self.selected_res_code = res_code
-        self.accept()
+
+        if sender.styleSheet() == "background-color: red":  # Do not allow selecting incompatible res codes
+            return
+
+        sender.setDisabled(True)
+        self.update_selected_res_codes_input(res_code)
+
+        # Update button colors based on compatibility
+        selected_res_code_data = None
+        for category, res_codes in self.res_code_data.items():
+            if res_code in res_codes:
+                selected_res_code_data = res_codes[res_code]
+                break
+
+        compatible_res_codes = selected_res_code_data["compatible"].split(", ")
+
+        for code, button in self.res_code_buttons.items():
+            if code == res_code:
+                continue
+            if code in compatible_res_codes:
+                button.setStyleSheet("background-color: green")
+            else:
+                button.setStyleSheet("background-color: red")
+
+    def update_selected_res_codes_input(self, res_code):
+        current_text = self.selected_res_codes_input.text()
+
+        if not current_text:
+            self.selected_res_codes_input.setText(res_code)
+        else:
+            self.selected_res_codes_input.setText(current_text + ", " + res_code)
 
     def clear_res_code_layout(self):
         for i in reversed(range(self.res_code_layout.count())):
@@ -1032,6 +1113,7 @@ class ServiceOrderEditorDialog(QDialog):
         self.setWindowTitle("Edit Service Order")
         self.service_order_data = service_order_data
         self.resize(1444, 720)
+        self.res_code_data = get_res_code()
         layout = QVBoxLayout()
 
         # Create QHBoxLayout to hold General Information and Res Code Information side by side
@@ -1172,17 +1254,37 @@ class ServiceOrderEditorDialog(QDialog):
             self.update_res_codes(selected_res_codes)
 
     def update_res_codes(self):
-        # Read the res code data from a JSON file
-        with open('res_codes.json', 'r') as f:
-            res_code_data = json.load(f)
+        res_code_dialog = ResCodeManagementDialog(self.res_code_data)
+        result = res_code_dialog.exec()
 
-        res_code_management_dialog = ResCodeManagementDialog(res_code_data)
-        res_code_management_dialog.exec_()
-        selected_res_codes = [
-            res_code_management_dialog.selected_res_code] if res_code_management_dialog.result() else []
-        res_codes_str = ', '.join(selected_res_codes)
-        self.res_code_value.setText(res_codes_str)
+        if result == QDialog.Accepted:
+            selected_res_code = res_code_dialog.selected_res_code
+            selected_category = None
 
+            for category, res_codes in self.res_code_data.items():
+                if selected_res_code in res_codes:
+                    selected_category = category
+                    break
+
+            # Check if the selected res code is compatible with the current res code
+            current_res_code = self.res_code_value.text()
+            current_res_code_data = self.res_code_data[selected_category][current_res_code]
+            new_res_code_data = self.res_code_data[selected_category][selected_res_code]
+            is_compatible = selected_res_code in current_res_code_data["compatible"].split(", ")
+
+            # Update the UI based on compatibility
+            if is_compatible:
+                self.res_code_value.setText(selected_res_code)
+
+                # Update BOP Time, FOP, Total Time, and other UI elements based on the selected res code data
+                self.bop_time_value.setText(new_res_code_data["bop"])
+                self.fop_value.setText(new_res_code_data["fop"])
+                total_time = int(new_res_code_data["bop"]) + int(new_res_code_data["fop"])
+                self.total_time_value.setText(str(total_time))
+
+            else:
+                QMessageBox.warning(self, "Conflict",
+                                    "The selected res code is not compatible with the current res code.")
 
 
 class CalendarDialog(QDialog):

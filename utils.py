@@ -9,3 +9,8 @@ def load_settings():
 
         return all_operators['Operators']['ALL']
 
+
+def get_res_code():
+    with open("res_codes.json", "r") as res:
+        res_codes = json.load(res)
+        return res_codes

@@ -121,7 +121,7 @@
       "compatible": "May only be used with ALON"
     },
     "ACON*": {
-      "rescode": "ACON*",
+      "rescode": "ACON",
       "description": "Apple Consultation",
       "sku": "None",
       "price": "None",
