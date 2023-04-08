@@ -1,4 +1,6 @@
 # DialogsWindow.py
+from typing import Any
+
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
 from PySide6.QtCore import QDate, Qt, QPoint, QDir, QByteArray
@@ -665,11 +667,15 @@ class RescanOrdersDialog(QDialog):
             if existing_service_order:
                 if existing_service_order[0][-2] == "NO":
                     # Display the location dialog
-                    location_dialog = LocationDialog(self.db)
+                    location_dialog = LocationDialog(self.db, existing_service_order[0][1])
                     if location_dialog.exec_():
-                        location = location_dialog.location_input.text().upper()
 
                         location = location_dialog.location_input.text().upper()
+                        if self.db.check_location_exists(location):
+                            location_warning_dialog = LocationWarningDialog(location)
+                            result = location_warning_dialog.exec_()
+                            if result == QMessageBox.No:
+                                return
                         last_updated = datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S")
 
                         # Update the location, updated_by, scanned_status, and last_updated in the database
@@ -865,6 +871,87 @@ class ServiceOrderView(QtWidgets.QDialog):
         table.setSortingEnabled(True)
 
         layout.addRow(table)
+
+class ResCodeDialog(QDialog):
+    def __init__(self, categories, res_codes, compatibility):
+        super().__init__()
+
+        self.setWindowTitle("Add Res Codes")
+        layout = QVBoxLayout()
+
+        # Create buttons for categories
+        category_buttons = QHBoxLayout()
+        self.category_buttons = {}
+        for category in categories:
+            button = QPushButton(category)
+            button.clicked.connect(self.display_res_codes)
+            category_buttons.addWidget(button)
+            self.category_buttons[category] = button
+        layout.addLayout(category_buttons)
+
+        # Create a QGridLayout to display the res codes
+        self.res_code_layout = QGridLayout()
+        layout.addLayout(self.res_code_layout)
+
+        # Store res codes and compatibility information
+        self.res_codes = res_codes
+        self.compatibility = compatibility
+
+        # Initialize selected codes and button widgets
+        self.selected_codes = []
+        self.res_code_buttons = {}
+
+        self.setLayout(layout)
+
+    def display_res_codes(self):
+        category = self.sender().text()
+
+        # Clear any existing res code buttons
+        for i in reversed(range(self.res_code_layout.count())):
+            widget = self.res_code_layout.itemAt(i).widget()
+            self.res_code_layout.removeWidget(widget)
+            widget.deleteLater()
+
+        # Add res code buttons for the selected category
+        for index, res_code in enumerate(self.res_codes[category]):
+            button = QPushButton(res_code)
+            button.setCheckable(True)
+            button.toggled.connect(self.toggle_res_code)
+            self.res_code_layout.addWidget(button, index // 4, index % 4)
+            self.res_code_buttons[res_code] = button
+
+        # Update the button colors based on compatibility
+        self.update_res_code_colors()
+
+    def toggle_res_code(self, checked):
+        res_code = self.sender().text()
+
+        if checked:
+            self.selected_codes.append(res_code)
+        else:
+            self.selected_codes.remove(res_code)
+
+        self.update_res_code_colors()
+
+    def update_res_code_colors(self):
+        for res_code, button in self.res_code_buttons.items():
+            if res_code in self.selected_codes:
+                button.setStyleSheet("background-color: gray;")
+                continue
+
+            compatible = True
+            for selected_code in self.selected_codes:
+                if not self.compatibility[res_code][selected_code]:
+                    compatible = False
+                    break
+
+            if compatible:
+                button.setStyleSheet("background-color: green;")
+            else:
+                button.setStyleSheet("background-color: red;")
+
+    def get_selected_codes(self):
+        return self.selected_codes
 
 
 class ServiceOrderEditorDialog(QDialog):
@@ -1187,32 +1274,39 @@ class LocationWarningDialog(QDialog):
 
 # Define a QDialog for entering a location
 class LocationDialog(QDialog):
+
     location_warning = Signal(str)
 
-    def __init__(self, db):
+    def __init__(self, db, location=None):
         super().__init__()
         self.setContentsMargins(5, 5, 5, 5)
         self.db = db
         self.setWindowTitle("Enter Location")
         layout = QVBoxLayout()
 
-        # Create a QHBoxLayout for the label and input box
-        hbox = QHBoxLayout()
+        # Create a QHBoxLayout for the current location label
+        hbox_current = QHBoxLayout()
+        self.current_location = QLabel(f"Current Location: {location}")
+        hbox_current.addWidget(self.current_location)
 
-        self.label = QLabel("Location:")
+        # Create a QHBoxLayout for the new location label and input box
+        hbox_new = QHBoxLayout()
+        self.label = QLabel("New Location:")
         self.location_input = QLineEdit()
+        hbox_new.addWidget(self.label)
+        hbox_new.addWidget(self.location_input)
 
-        # Add the label and input box to the QHBoxLayout
-        hbox.addWidget(self.label)
-        hbox.addWidget(self.location_input)
+        # Add the QHBoxLayouts to the main QVBoxLayout
+        layout.addLayout(hbox_current)
+        layout.addLayout(hbox_new)
 
-        # Add the QHBoxLayout to the main QVBoxLayout
-        layout.addLayout(hbox)
         self.location_input.returnPressed.connect(self.accept)
         self.setLayout(layout)
 
     def check_location_exists(self, location):
         return self.db.check_location_exists(location)
+
+
 
 
 # Define a QDialog for selecting who closed the service order
@@ -1235,13 +1329,20 @@ class CloseByDialog(QDialog):
 
 # Define a QDialog for selecting an operator
 class OperatorDialog(QDialog):
-    def __init__(self):
+    def __init__(self, location=None):
         super().__init__()
         self.operators = load_settings()
         self.setContentsMargins(5, 5, 5, 5)
 
         self.setWindowTitle("Select Agent")
-        layout = QGridLayout()
+        layout = QVBoxLayout()
+
+        # Add location label when location is not None
+        if location is not None:
+            location_label = QLabel(f"Current Location: {location}")
+            layout.addWidget(location_label)
+
+        grid_layout = QGridLayout()
         self.button_group = QButtonGroup()
         self.buttons = []
         for index, operator in enumerate(self.operators):
@@ -1249,7 +1350,9 @@ class OperatorDialog(QDialog):
             self.buttons.append(button)
 
             self.button_group.addButton(button, index)
-            layout.addWidget(button, index // 2, index % 2)
+            grid_layout.addWidget(button, index // 2, index % 2)
+
+        layout.addLayout(grid_layout)
         self.setLayout(layout)
         self.button_group.buttonClicked.connect(self.on_button_clicked)
         self.selected_operator = None

@@ -1,0 +1,22 @@
+  {
+    "Apple": {
+      "AWAP":{"SKU": 1,
+              "Price": "",
+              "FOP": 48,
+              "BOP": 48,
+              "Overview": "",
+              "Not comparable": ["","",""]}
+    },
+    "Samsung": {"GSSS":{"SKU": 1,
+                "Price": "",
+                "FOP": 48,
+                "BOP": 48,
+                "Overview": "",
+                "Not comparable": ["","",""]}},
+    "GS": {"GSGS":{"SKU": 1,
+              "Price": "",
+              "FOP": 48,
+              "BOP": 48,
+              "Overview": "",
+              "Not comparable": ["","",""]}}
+  }

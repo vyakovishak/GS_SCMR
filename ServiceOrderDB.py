@@ -170,11 +170,13 @@ class ServiceOrderDB:
         return self.execute(SQL_COMMAND, parameters=(location, updated_by, scanned_status, last_updated, so),
                             commit=True)
 
-    def update_scanned_status(self, scanned_status, so, operator):
-        current_scanned_status = self.select_unit(column='Scanned', ServiceOrder=so)
-        self.log_update("Updated Scanned", ServiceOrder=so, operator=operator,
-                        before={"Scanned": current_scanned_status},
-                        after={"Scanned": scanned_status})
+    def update_scanned_status(self, scanned_status, so, operator, log=True):
+        if log:
+            current_scanned_status = self.select_unit(column='Scanned', ServiceOrder=so)
+            self.log_update("Updated Scanned", ServiceOrder=so, operator=operator,
+                            before={"Scanned": current_scanned_status},
+                            after={"Scanned": scanned_status})
+
         SQL_COMMAND = "UPDATE ServiceOrders SET Scanned=? WHERE ServiceOrder=?"
         return self.execute(SQL_COMMAND, parameters=(scanned_status, so), commit=True)
 

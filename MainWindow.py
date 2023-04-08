@@ -115,7 +115,6 @@ class MainWin(QMainWindow):
         # Add the QVBoxLayout to the main layout
         main_layout.addLayout(input_buttons_layout)
 
-
     def open_qr_code_generator(self):
         qr_code_generator_dialog = QRCodeGeneratorDialog()
         qr_code_generator_dialog.exec_()
@@ -158,8 +157,10 @@ class MainWin(QMainWindow):
         operator_dialog = OperatorDialog()
         if operator_dialog.exec_():
             operator = operator_dialog.get_operator()
-            remaining_orders = len(self.db.select_all_unchecked_out())
-            if remaining_orders > 0:
+            remaining_orders = self.db.select_all_unchecked_out()
+            for order in remaining_orders:
+                self.db.update_scanned_status(0, order[0], operator, False)
+            if len(remaining_orders) > 0:
                 rescan_orders_dialog = RescanOrdersDialog(self.db, operator)
                 rescan_orders_dialog.refresh_main_table_signal.connect(self.refresh_main_table)
 
@@ -265,7 +266,7 @@ class MainWin(QMainWindow):
                 service_order_dialog.exec_()
                 return
             else:
-                operator_dialog = OperatorDialog()
+                operator_dialog = OperatorDialog(location=existing_service_order[0][1])
                 if operator_dialog.exec_():
                     check_out_by = operator_dialog.get_operator()
                     if check_out_by != "YES":
