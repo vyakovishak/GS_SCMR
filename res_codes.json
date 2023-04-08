@@ -1,22 +1,673 @@
-  {
-    "Apple": {
-      "AWAP":{"SKU": 1,
-              "Price": "",
-              "FOP": 48,
-              "BOP": 48,
-              "Overview": "",
-              "Not comparable": ["","",""]}
+{
+  "apple": {
+    "ABAT": {
+      "rescode": "ABAT",
+      "description": "Apple Battery Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "25",
+      "overview": "Battery Same Unit Repair in Store through GSX",
+      "compatible": "May be used with ABAT, AFAL, AREC, ASPK, AVIB, ACAM, AWUR, ARDO"
     },
-    "Samsung": {"GSSS":{"SKU": 1,
-                "Price": "",
-                "FOP": 48,
-                "BOP": 48,
-                "Overview": "",
-                "Not comparable": ["","",""]}},
-    "GS": {"GSGS":{"SKU": 1,
-              "Price": "",
-              "FOP": 48,
-              "BOP": 48,
-              "Overview": "",
-              "Not comparable": ["","",""]}}
+    "ASCR": {
+      "rescode": "ASCR",
+      "description": "Apple Display Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "30",
+      "overview": "Display Same Unit Repair in Store through GSX",
+      "compatible": "May be used with ABAT, AFAL, AREC, ASPK, AVIB, ACAM, AWUR, ARDO"
+    },
+    "ASFT": {
+      "rescode": "ASFT",
+      "description": "Apple Software Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "10",
+      "overview": "Software troubleshooting performed in GSX",
+      "compatible": "Standalone Res Code"
+    },
+    "AREC": {
+      "rescode": "AREC",
+      "description": "Apple Receiver Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "25",
+      "overview": "Receiver Same Unit Repair in Store through GSX",
+      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AVIB, ACAM"
+    },
+    "ASPK": {
+      "rescode": "ASPK",
+      "description": "Apple Speaker Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "25",
+      "overview": "Speaker Same Unit Repair in Store through GSX",
+      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AVIB, ACAM"
+    },
+    "AVIB": {
+      "rescode": "AVIB",
+      "description": "Apple Vibe Motor Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "25",
+      "overview": "Vibe Motor Same Unit Repair in Store through GSX",
+      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AREC, ACAM"
+    },
+    "ACAM": {
+      "rescode": "ACAM",
+      "description": "Apple Camera Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "25",
+      "overview": "Camera Same Unit Repair in Store through GSX",
+      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AVIB, AREC"
+    },
+    "ARDO": {
+      "rescode": "ARDO",
+      "description": "Apple Repair Redo",
+      "sku": "None",
+      "price": "None",
+      "fop": "0",
+      "bop": "20",
+      "overview": "Repair Redo on Same Unit Repair",
+      "compatible": "May be used with ABAT, ASCR, AFAL, AREC, ASPK, AVIB, ACAM"
+    },
+    "ALON**": {
+      "rescode": "ALON**",
+      "description": "Apple Loaner Phone",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "0",
+      "overview": "Apple Loaner assigned to a client through GSX",
+      "compatible": "May only be used with AMAL"
+    },
+    "AWUR": {
+      "rescode": "AWUR",
+      "description": "Apple Whole Unit Replacement",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "9",
+      "overview": "Whole Unit Replacement through GSX",
+      "compatible": "Standalone Res Code"
+    },
+    "AFAL": {
+      "rescode": "AFAL",
+      "description": "Apple Repair Failure/WUR",
+      "sku": "None",
+      "price": "None",
+      "fop": "0",
+      "bop": "20",
+      "overview": "Whole Unit Replacement after failed Same Unit Repair",
+      "compatible": "May be used with ABAT, ASCR, ARDO, AREC, ASPK, AVIB, ACAM"
+    },
+    "AMAL": {
+      "rescode": "AMAL",
+      "description": "Apple Mail In Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "9",
+      "overview": "Mail in Repair shipped to Apple through GSX",
+      "compatible": "May only be used with ALON"
+    },
+    "ACON*": {
+      "rescode": "ACON*",
+      "description": "Apple Consultation",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "0",
+      "overview": "Apple Consultation, the client device must be present",
+      "compatible": "Standalone Res Code"
+    }
+  },
+  "samsung": {
+    "SFRN": {
+      "rescode": "SFRN",
+      "description": "Samsung Front Screen Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Screen replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SBAK": {
+      "rescode": "SBAK",
+      "description": "Samsung Back Glass/Cover Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Back glass/cover replacement, Galaxy Diagnostics IQC & OQC, software update and repair validation using Fenrir",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SFBR": {
+      "rescode": "SFBR",
+      "description": "Samsung Front & Back Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Screen and back glass/cover replacement, Galaxy Diagnostics IQC & OQC, software update and repair validation using Fenrir",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SFCR": {
+      "rescode": "SFCR",
+      "description": "Samsung Front & Component Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Front Screen and component replacement, Galaxy Diagnostics IQC & OQC, software update and repair validation using Fenrir",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SBCR": {
+      "rescode": "SBCR",
+      "description": "Samsung Back & Component Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Back glass/cover and component replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SFBC": {
+      "rescode": "SFBC",
+      "description": "Samsung Front, Back & Component Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Front screen, back glass/cover and component replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SBAT": {
+      "rescode": "SBAT",
+      "description": "Samsung Battery Replacement",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Battery replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SCAM": {
+      "rescode": "SCAM",
+      "description": "Samsung Camera Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Camera replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SSPK": {
+      "rescode": "SSPK",
+      "description": "Samsung Speaker Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Speaker replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SBUT": {
+      "rescode": "SBUT",
+      "description": "Samsung Button Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Button replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SAUD": {
+      "rescode": "SAUD",
+      "description": "Samsung Audio Jack Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Audio Jack replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SVIB": {
+      "rescode": "SVIB",
+      "description": "Samsung Vibration Motor Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Vibration Motor replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SREC": {
+      "rescode": "SREC",
+      "description": "Samsung Receiver Repair",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Receiver replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SCMP": {
+      "rescode": "SCMP",
+      "description": "Samsung Component Repair-Other",
+      "sku": "Sheet",
+      "price": "Sheet",
+      "fop": "25",
+      "bop": "67",
+      "overview": "Component (not listed) replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
+      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+    },
+    "SSFT": {
+      "rescode": "SSFT",
+      "description": "Samsung Software Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "52",
+      "overview": "Software repair/update/installation and Galaxy Diagnostics IQC. Galaxy Diagnostics OQC and Fenrir may be used.",
+      "compatible": "Cannot be used in combination with other resolution codes"
+    },
+    "SOSE": {
+      "rescode": "SOSE",
+      "description": "Samsung On-Site Exchange",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "52",
+      "overview": "Galaxy Diagnostics IQC and On-Site Exchange are performed.",
+      "compatible": "Cannot be used in combination with other resolution codes"
+    },
+    "SBER": {
+      "rescode": "SBER",
+      "description": "Samsung Beyond Economical Repair",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "25",
+      "overview": "The device is designated as beyond economical repair during repair inspection. Galaxy Diagnostics IQC & OQC may be used to determine BER.",
+      "compatible": "Cannot be used in combination with other resolution codes"
+    },
+    "SNFF": {
+      "rescode": "SNFF",
+      "description": "Samsung No Fault Found",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "52",
+      "overview": "The device is showing no signs of issue after performing Galaxy Diagnostics IQC and agent troubleshooting.",
+      "compatible": "Cannot be used in combination with other resolution codes"
+    },
+    "SACC": {
+      "rescode": "SACC",
+      "description": "Samsung Accessory Replacement",
+      "sku": "None",
+      "price": "None",
+      "fop": "25",
+      "bop": "5",
+      "overview": "An accessory is replaced using GSPN.",
+      "compatible": "Cannot be used in combination with other resolution codes"
+    },
+    "SRDO": {
+      "rescode": "SRDO",
+      "description": "Samsung REDO",
+      "sku": "None",
+      "price": "None",
+      "fop": "0",
+      "bop": "40",
+      "overview": "An additional attempt to repair a device is necessary after repair.",
+      "compatible": "This resolution code can be used with any Samsung ASP repair resolution code."
+    },
+    "SCON": {
+      "rescode": "SCON",
+      "description": "Samsung Consultation",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "0",
+      "overview": "Client education to review the basic functions of a Samsung device.",
+      "compatible": "Cannot be used in combination with other resolution codes."
+    }
+  },
+  "geeksquad": {
+    "GSIS": {
+      "rescode": "GSIS",
+      "description": "Geek Squad In-Store Service",
+      "sku": "Standard Problem Code for all Precinct Service and Repairs"
+    },
+    "GSDC": {
+      "rescode": "GSDC",
+      "description": "Complex Battery Replacement",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install battery, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSDI": {
+      "rescode": "GSDI",
+      "description": "Diagnostic (completed in-store w/AJU GSOS)",
+      "sku": "1856593",
+      "price": "100",
+      "fop": "34",
+      "bop": "45",
+      "overview": "Diagnostic completed by Precinct with an operating system repair completed through remote connection",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSHD": {
+      "rescode": "GSHD",
+      "description": "Hard Drive Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install hard drive, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSHW": {
+      "rescode": "GSHW",
+      "description": "Misc Internal Part Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install miscellaneous internal parts, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSMM": {
+      "rescode": "GSMM",
+      "description": "Memory Install",
+      "sku": "8789741",
+      "price": "40",
+      "fop": "34",
+      "bop": "10",
+      "overview": "Install unlimited memory to one device and test the device",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSMO": {
+      "rescode": "GSMO",
+      "description": "Modem Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install modem, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSNW": {
+      "rescode": "GSNW",
+      "description": "Network Card/Adapter Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install network card, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSOD": {
+      "rescode": "GSOD",
+      "description": "Optical Drive Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install ODD, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSOI": {
+      "rescode": "GSOI",
+      "description": "Operating System Install",
+      "sku": "2569303",
+      "price": "100",
+      "fop": "34",
+      "bop": "20",
+      "overview": "Install one operating system, drivers, critical updates, MFG Software (for restore), and test OS",
+      "compatible": "GSOS or Any Standalone Resolution Code"
+    },
+    "GSOS": {
+      "rescode": "GSOS",
+      "description": "Operating System Repair (completed by AJU)",
+      "sku": "6684206",
+      "price": "150",
+      "fop": "34",
+      "bop": "30",
+      "overview": "Operating System Repair completed through remote connection (BOP time allotted for connecting and post-op)",
+      "compatible": "GSOI or Any Standalone Resolution Code"
+    },
+    "GSPR": {
+      "rescode": "GSPR",
+      "description": "Printer / Scanner Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install printer/scanner, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSPS": {
+      "rescode": "GSPS",
+      "description": "Power Supply Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install power supply, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSPU": {
+      "rescode": "GSPU",
+      "description": "Computer Processor Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install CPU, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSSB": {
+      "rescode": "GSSB",
+      "description": "System Board Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install system board, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSSC": {
+      "rescode": "GSSC",
+      "description": "Sound Card Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install the sound card, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSSW": {
+      "rescode": "GSSW",
+      "description": "Software Install (completed by AJU w/GSOS)",
+      "sku": "1478804",
+      "price": "40",
+      "fop": "34",
+      "bop": "0",
+      "overview": "The software installs are completed through a remote connection with an operating system repair",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSPW": {
+      "rescode": "GSPW",
+      "description": "Password Reset",
+      "sku": "8900075",
+      "price": "40",
+      "fop": "34",
+      "bop": "20",
+      "overview": "Remove the Password from Macbook or Windows computer, and assist Client with setting a new password if desired",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSVC": {
+      "rescode": "GSVC",
+      "description": "Video Card Install",
+      "sku": "7860102",
+      "price": "40",
+      "fop": "34",
+      "bop": "18",
+      "overview": "Install video card, install included SW/drivers, update device/drivers, and test",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSHH": {
+      "rescode": "GSHH",
+      "description": "Quick Fix",
+      "sku": "2028558",
+      "price": "40",
+      "fop": "0",
+      "bop": "15",
+      "overview": "Minor repair that does not fall under the additional scope of work and fits into a 15-minute timeframe",
+      "compatible": "Any Standalone Resolution Code may be used with GSDI"
+    },
+    "GSCS": {
+      "rescode": "GSCS",
+      "description": "PC/Tablet Setup",
+      "sku": "8989297",
+      "price": "40",
+      "fop": "45",
+      "bop": "0",
+      "overview": "Register, create accounts, Customizer, Windows update, install security software, and pin tiles. New devices and Open Box purchases only",
+      "compatible": "May only be used with GSSW, GSDB, GSMM, and GSHD"
+    },
+    "GSDS": {
+      "rescode": "GSDS",
+      "description": "Device Setup",
+      "sku": "9131012",
+      "price": "40",
+      "fop": "20",
+      "bop": "0",
+      "overview": "Perform \"OOBE\", install firmware updates, set up accounts, and educate client. New devices and Open Box purchases only.",
+      "compatible": "Standalone Res Code, do not use other codes. Not for PC/Tablet Setup"
+    },
+    "GSFM": {
+      "rescode": "GSFM",
+      "description": "Restore Media Creation",
+      "sku": "7243716",
+      "price": "40",
+      "fop": "10",
+      "bop": "0",
+      "overview": "Create restore discs or USB drives. Includes Geek Squad 32GB flash drive",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSSH": {
+      "rescode": "GSSH",
+      "description": "Device Screen Shield Install (Mobile Phone)",
+      "sku": "3567024",
+      "price": "8",
+      "fop": "9",
+      "bop": "0",
+      "overview": "Install a screen shield on one mobile phone or one handheld gaming device",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSDB": {
+      "rescode": "GSDB",
+      "description": "Data Backup or Transfer & Hard Drive",
+      "sku": "9244757",
+      "price": "150",
+      "fop": "34",
+      "bop": "57",
+      "overview": "Transfer data to another media/device, import data, and configure external HDD. (Includes qualifying hard drive)",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "None": {
+      "rescode": "None",
+      "description": "PC Repair Shipping and Receiving",
+      "sku": "None",
+      "price": "None",
+      "fop": "15",
+      "bop": "0",
+      "overview": "Shipping and receiving products through Nova",
+      "compatible": "No Res Code Available"
+    },
+    "GSRD": {
+      "rescode": "GSRD",
+      "description": "Precinct Data Recovery Level One",
+      "sku": "7224007",
+      "price": "200",
+      "fop": "34",
+      "bop": "57",
+      "overview": "Recover Deleted Data from hard drives or memory cards. Not to be used for failing hard drives. (Estimate fee additional)",
+      "compatible": "Any Standalone Resolution Code"
+    },
+    "GSSF": {
+      "rescode": "GSSF",
+      "description": "Geek Squad  Express Replacement",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "0",
+      "overview": "Assist Client with Express Replacement through the Agent Portal",
+      "compatible": "Standalone Res Code, do not use other codes."
+    },
+    "GSOB": {
+      "rescode": "GSOB",
+      "description": "Open Box",
+      "sku": "None",
+      "price": "None",
+      "fop": "19",
+      "bop": "0",
+      "overview": "Used for items all open item Nova Tags.",
+      "compatible": "Standalone Res Code, do not use other codes."
+    },
+    "GS30": {
+      "rescode": "GS30",
+      "description": "30 Minute One to One Tutorial",
+      "sku": "8899138",
+      "price": "40",
+      "fop": "40",
+      "bop": "0",
+      "overview": "30 Minute Paid Tutorial with Client, service order needs to be created. (Ring SKU once per 30-minute tutorial)",
+      "compatible": "Standalone Res Code, do not use other codes."
+    },
+    "GS60": {
+      "rescode": "GS60",
+      "description": "60 Minute One to One Tutorial",
+      "sku": " ",
+      "price": "None",
+      "fop": "70",
+      "bop": "0",
+      "overview": "60 Minute Paid Tutorial with Client, service order needs to be created. (Ring SKU 8899138 twice)",
+      "compatible": "Standalone Res Code, do not use other codes."
+    },
+    "GSCO": {
+      "rescode": "GSCO",
+      "description": "Geek Squad Consultation",
+      "sku": "None",
+      "price": "None",
+      "fop": "20",
+      "bop": "0",
+      "overview": "Standalone consultation at the counter, service order needs to be created",
+      "compatible": "Standalone Res Code, do not use other codes."
+    },
+    "QUIT": {
+      "rescode": "QUIT",
+      "description": "No work done / No revenue expected.",
+      "sku": "None",
+      "price": "None",
+      "fop": "0",
+      "bop": "0",
+      "overview": "Used when no service is performed and no revenue is expected",
+      "compatible": "Standalone Res Code, do not use other codes."
+    }
   }
+}
