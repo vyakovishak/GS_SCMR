@@ -1,15 +1,15 @@
 # DialogsWindow.py
 from typing import Any
-
+from functools import partial
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
-    QMessageBox, QHBoxLayout, QTableWidget, QCalendarWidget, QCheckBox, QComboBox
-from PySide6.QtCore import QDate, Qt, QPoint, QDir, QByteArray
+    QMessageBox, QTableWidget, QCheckBox, QComboBox
+from PySide6.QtCore import Qt, QDir, QByteArray
 from PySide6.QtMultimediaWidgets import QVideoWidget
-from PySide6.QtGui import QFont, QPixmap, QImage, QPainter, QPen
+from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
 from PySide6.QtPrintSupport import QPrinter
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
-    QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QListWidget, QListWidgetItem, \
-    QSplitter, QListView, QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget, QApplication
+    QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QSplitter, QListView, \
+    QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget, QApplication, QInputDialog
 import qrcode
 from PIL.ImageQt import ImageQt
 from PIL import Image, ImageDraw, ImageFont
@@ -19,7 +19,7 @@ from PySide6.QtCore import Signal
 import json
 import datetime
 from PySide6 import QtWidgets
-from utils import load_settings, get_res_code
+from utils import load_agents, get_res_code
 import re
 
 
@@ -447,84 +447,254 @@ class AdminLoginDialog(QDialog):
             QMessageBox.warning(self, "Warning", "Invalid username or password.")
 
 
+class EditAgentDialog(QDialog):
+    def __init__(self, agent_name, agent_data):
+        super().__init__()
+
+        self.setWindowTitle(f"Edit {agent_name}")
+        self.agent_name = agent_name
+        self.agent_data = agent_data
+
+        layout = QVBoxLayout(self)
+
+        self.name_input = QLineEdit()
+        self.name_input.setPlaceholderText(agent_name)
+        layout.addWidget(QLabel("Agent Name:"))
+        layout.addWidget(self.name_input)
+
+        self.weekly_input = QLineEdit()
+        self.weekly_input.setPlaceholderText(str(agent_data['Weekly']))
+        layout.addWidget(QLabel("Agent Weekly Hours:"))
+        layout.addWidget(self.weekly_input)
+
+        self.monthly_input = QLineEdit()
+        self.monthly_input.setPlaceholderText(str(agent_data['Monthly']))
+        layout.addWidget(QLabel("Agent Monthly Hours:"))
+        layout.addWidget(self.monthly_input)
+
+        self.apply_button = QPushButton("Apply")
+        self.apply_button.clicked.connect(self.apply_changes)
+        layout.addWidget(self.apply_button)
+
+        self.delete_button = QPushButton("Delete")
+        self.delete_button.clicked.connect(self.delete_agent)
+        layout.addWidget(self.delete_button)
+
+    def apply_changes(self):
+        updated_name = self.name_input.text() if self.name_input.text() else self.agent_name
+        updated_weekly = int(self.weekly_input.text()) if self.weekly_input.text() else self.agent_data['Weekly']
+        updated_monthly = int(self.monthly_input.text()) if self.monthly_input.text() else self.agent_data['Monthly']
+
+        self.agent_name = updated_name
+        self.agent_data['Weekly'] = updated_weekly
+        self.agent_data['Monthly'] = updated_monthly
+        self.done(2)  # Return 2 if changes should be applied
+
+    def delete_agent(self):
+        # Show a warning message before deleting the agent
+        warning_msg = QMessageBox()
+        warning_msg.setIcon(QMessageBox.Warning)
+        warning_msg.setWindowTitle("Delete Agent")
+        warning_msg.setText("Are you sure you want to delete this agent?")
+        warning_msg.setStandardButtons(QMessageBox.Yes | QMessageBox.No)
+
+        result = warning_msg.exec()
+
+        if result == QMessageBox.Yes:
+            self.done(1)  # Return 1 if the agent should be deleted
+
+        elif result == QMessageBox.No:
+            return
+
+
 class AdminManagement(QDialog):
     def __init__(self):
         super().__init__()
 
         self.setWindowTitle("Admin Management")
-        self.operators = load_settings()
-        self.resize(200, 300)
+        self.agents = load_agents()
+        print(self.agents)
+        self.resize(600, 400)
         self.setContentsMargins(5, 5, 5, 5)
 
         layout = QVBoxLayout(self)
 
-        # Create a QTableWidget for displaying operators and delete buttons
-        self.table_widget = QTableWidget()
-        self.table_widget.setRowCount(len(self.operators))
-        self.table_widget.setColumnCount(2)
-        self.table_widget.setHorizontalHeaderLabels(["Agent", "Delete"])
-        self.table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        tables_layout = QHBoxLayout()
 
-        # Add operators and delete buttons to the table
-        for row, operator in enumerate(self.operators):
-            # Add operator name
-            operator_item = QTableWidgetItem(operator)
-            self.table_widget.setItem(row, 0, operator_item)
+        # ARA table
+        self.ara_table_widget = QTableWidget()
+        self.populate_table_widget(self.ara_table_widget, "ARA")
 
-            # Add delete button
-            delete_button = QPushButton("X")
-            delete_button.clicked.connect(lambda *_, r=row: self.delete_operator(r))
-            self.table_widget.setCellWidget(row, 1, delete_button)
+        ara_label = QLabel("ARA")
+        ara_layout = QVBoxLayout()
+        ara_layout.addWidget(ara_label)
+        ara_layout.addWidget(self.ara_table_widget)
+        tables_layout.addLayout(ara_layout)
 
-        self.table_widget.setEditTriggers(QtWidgets.QAbstractItemView.NoEditTriggers)
-        layout.addWidget(self.table_widget)
+        # CA table
+        self.ca_table_widget = QTableWidget()
+        self.populate_table_widget(self.ca_table_widget, "CA")
 
-        # Add operator input and button
-        add_operator_layout = QHBoxLayout()
-        self.operator_input = QLineEdit()
-        self.add_operator_button = QPushButton("Add Agent")
-        self.add_operator_button.clicked.connect(self.add_operator)
-        add_operator_layout.addWidget(self.operator_input)
-        add_operator_layout.addWidget(self.add_operator_button)
-        layout.addLayout(add_operator_layout)
+        ca_label = QLabel("CA")
+        ca_layout = QVBoxLayout()
+        ca_layout.addWidget(ca_label)
+        ca_layout.addWidget(self.ca_table_widget)
+        tables_layout.addLayout(ca_layout)
 
-    def delete_operator(self, row):
-        operator_to_delete = self.operators[row]
-        if operator_to_delete:
-            self.operators.remove(operator_to_delete)
-            self.update_settings()
-            self.table_widget.removeRow(row)
+        layout.addLayout(tables_layout)
 
-            # Update delete button connections for the remaining rows
-            for r in range(row, self.table_widget.rowCount()):
-                delete_button = self.table_widget.cellWidget(r, 1)
-                delete_button.clicked.disconnect()
-                delete_button.clicked.connect(lambda *_, r=r: self.delete_operator(r))
+        add_agent_layout = QHBoxLayout()
 
-    def add_operator(self):
-        new_operator = self.operator_input.text().strip()
-        if new_operator and new_operator not in self.operators:
-            self.operators.append(new_operator)
-            self.update_settings()
+        self.agent_name_input = QLineEdit()
+        self.agent_name_input.setPlaceholderText("Enter Agent Name")
+        add_agent_layout.addWidget(self.agent_name_input)
 
-            # Add the new operator to the table
-            row = self.table_widget.rowCount()
-            self.table_widget.setRowCount(row + 1)
-            operator_item = QTableWidgetItem(new_operator)
-            self.table_widget.setItem(row, 0, operator_item)
+        self.add_agent_button = QPushButton("Add Agent")
+        self.add_agent_button.clicked.connect(self.add_agent)
+        add_agent_layout.addWidget(self.add_agent_button)
 
-            delete_button = QPushButton("X")
-            delete_button.clicked.connect(lambda *_, r=row: self.delete_operator(r))
-            self.table_widget.setCellWidget(row, 1, delete_button)
+        layout.addLayout(add_agent_layout)
 
-            self.operator_input.clear()
+    def create_table_widget(self, group):
+        table_widget = QTableWidget()
+        table_widget.setColumnCount(2)
+        table_widget.setHorizontalHeaderLabels(["Agent", "Edit"])
+        table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
 
-    def update_settings(self):
-        with open("Settings.json", "r") as f:
-            settings = json.load(f)
-        settings["Operators"]["ALL"] = self.operators
-        with open("Settings.json", "w") as f:
-            json.dump(settings, f, indent=2)
+        self.populate_table_widget(table_widget, group)
+
+        return table_widget
+
+    def populate_table_widget(self, table_widget, group):
+        agents = self.agents["Agents"][group]
+        table_widget.setRowCount(len(agents))
+        table_widget.setColumnCount(2)
+        table_widget.setHorizontalHeaderLabels(["Agent", "Edit"])
+        table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        for row, (agent_name, agent_data) in enumerate(agents.items()):
+            table_widget.setItem(row, 0, QTableWidgetItem(agent_name))
+
+            edit_button = QPushButton("Edit")
+            edit_button.clicked.connect(lambda *_, r=row, g=group: self.edit_agent(r, g))
+            table_widget.setCellWidget(row, 1, edit_button)
+
+    def add_agent(self):
+        new_agent_name = self.agent_name_input.text()
+
+        if not new_agent_name:
+            QMessageBox.warning(self, "Error", "Please enter a valid agent name.")
+            return
+
+        if not self.is_agent_name_unique(new_agent_name):
+            QMessageBox.warning(self, "Error", "This agent name already exists. Please enter a unique agent name.")
+            return
+
+        if not new_agent_name:
+            QMessageBox.warning(self, "Warning", "Please enter a new agent name.")
+            return
+
+        group, _ = QInputDialog.getItem(self, "Select Group", "Select group for the new agent:", ["ARA", "CA"],
+                                        editable=False)
+        if not group:
+            return
+
+        weekly_hours, ok = QInputDialog.getInt(self, "Weekly Hours", "Enter the weekly hours for the new agent:")
+        if not ok:
+            return
+
+        monthly_hours, ok = QInputDialog.getInt(self, "Monthly Hours", "Enter the monthly hours for the new agent:")
+        if not ok:
+            return
+
+        self.agents["Agents"][group][new_agent_name] = {"Weekly": weekly_hours, "Monthly": monthly_hours}
+        self.update_agents()
+
+        table_widget = self.ara_table_widget if group == "ARA" else self.ca_table_widget
+        row = table_widget.rowCount()
+        table_widget.setRowCount(row + 1)
+
+        agent_item = QTableWidgetItem(new_agent_name)
+        table_widget.setItem(row, 0, agent_item)
+
+        edit_button = QPushButton("Edit")
+        edit_button.clicked.connect(lambda *_, r=row, g=group: self.edit_agent(r, g))
+        table_widget.setCellWidget(row, 1, edit_button)
+
+        self.agent_name_input.clear()
+
+    def create_table_widget(self, group):
+        agents = self.agents["Agents"][group]
+
+        table_widget = QTableWidget()
+        table_widget.setRowCount(len(agents))
+        table_widget.setColumnCount(2)
+        table_widget.setHorizontalHeaderLabels(["Agent", "Edit"])
+        table_widget.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+
+        for row, agent in enumerate(agents):
+            agent_item = QTableWidgetItem(agent)
+            table_widget.setItem(row, 0, agent_item)
+
+            edit_button = QPushButton("Edit")
+            edit_button.clicked.connect(lambda *_, r=row, g=group: self.edit_agent(r, g))
+            table_widget.setCellWidget(row, 1, edit_button)
+
+        table_widget.setEditTriggers(QTableWidget.NoEditTriggers)
+
+        return table_widget
+
+    def find_agent_in_settings(self, agent_name):
+        print(self.agents)
+        for group, agents in self.agents["Agents"].items():
+            if agent_name in agents:
+                return group, agents[agent_name]
+        return None, None
+
+    def edit_agent(self, row, group):
+        table_widget = self.ara_table_widget if group == "ARA" else self.ca_table_widget
+        agent_name = table_widget.item(row, 0).text()
+        agent_data = self.agents["Agents"][group][agent_name]
+
+        edit_dialog = EditAgentDialog(agent_name, agent_data)
+        result = edit_dialog.exec()
+
+        if result == 1:
+            # Delete the agent from the settings
+            del self.agents["Agents"][group][agent_name]
+            self.update_agents()
+
+            # Remove the agent from the list and the table
+            table_widget.removeRow(row)
+
+            # Update edit button connections for the remaining rows
+            for r in range(row, table_widget.rowCount()):
+                edit_button = table_widget.cellWidget(r, 1)
+                edit_button.clicked.disconnect()
+                edit_button.clicked.connect(lambda *_, r=r, g=group: self.edit_agent(r, g))
+
+        elif result == 2:
+            # Apply changes
+            old_agent_name = agent_name
+            new_agent_name = edit_dialog.agent_name
+            if old_agent_name != new_agent_name:
+                self.agents["Agents"][group][new_agent_name] = self.agents["Agents"][group].pop(old_agent_name)
+                table_widget.item(row, 0).setText(new_agent_name)
+
+            self.agents["Agents"][group][new_agent_name]['Weekly'] = edit_dialog.agent_data['Weekly']
+            self.agents["Agents"][group][new_agent_name]['Monthly'] = edit_dialog.agent_data['Monthly']
+            self.update_agents()
+
+    def is_agent_name_unique(self, agent_name):
+        for group in self.agents["Agents"].values():
+            if agent_name in group:
+                return False
+        return True
+
+    def update_agents(self):
+        with open("Agents.json", "w") as f:
+            json.dump(self.agents, f, indent=2)
 
 
 class CustomQDialog(QDialog):
@@ -877,119 +1047,48 @@ class ServiceOrderView(QtWidgets.QDialog):
         layout.addRow(table)
 
 
+class CategoriesGroupBox(QGroupBox):
+    def __init__(self, categories, show_res_codes_callback, parent=None):
+        super().__init__("Categories", parent)
+        categories_layout = QHBoxLayout()
+        self.category_buttons = {}
+
+        for category in categories:
+            button = QPushButton(category)
+            button.clicked.connect(show_res_codes_callback)
+            categories_layout.addWidget(button)
+            self.category_buttons[category] = button
+
+        self.setLayout(categories_layout)
+
+
 class ResCodesGroupBox(QGroupBox):
-    def __init__(self, category, res_code_data, parent=None):
-        super().__init__(category, parent)
-        self.category = category
-        self.res_code_data = res_code_data
-        self.res_codes_layout = QGridLayout()
-        self.buttons = {}
-        self.setLayout(self.res_codes_layout)
+    def __init__(self, parent=None):
+        super().__init__("", parent)
+        self.res_code_layout = QGridLayout()
+        self.setLayout(self.res_code_layout)
+        self.res_code_buttons = {}
+
+    def show_res_codes(self, category, res_codes):
+        self.clear_res_code_layout()
+        self.setTitle(category)
 
         row = 0
         col = 0
-        for code, data in self.res_code_data[self.category].items():
+        for code, data in res_codes.items():
             button = QPushButton(code)
-            button.clicked.connect(parent.select_res_code)
-            self.res_codes_layout.addWidget(button, row, col)
-            self.buttons[code] = button
+            button.clicked.connect(self.parent().select_res_code)
+            self.res_code_layout.addWidget(button, row, col)
+            self.res_code_buttons[code] = button
             col += 1
             if col == 3:
                 col = 0
                 row += 1
+        self.res_code_layout.setRowStretch(row, 1)
 
-    def set_compatibility(self, selected_res_code):
-        selected_data = self.res_code_data[self.category][selected_res_code]
-        compatible_codes = selected_data["compatible"].split(", ")
-        for code, button in self.buttons.items():
-            if code == selected_res_code:
-                button.setStyleSheet("background-color: grey")
-            elif code in compatible_codes:
-                button.setStyleSheet("background-color: green")
-            else:
-                button.setStyleSheet("background-color: red")
-
-
-class ResCodeDialog(QDialog):
-    def __init__(self, categories, res_codes, compatibility):
-        super().__init__()
-
-        self.setWindowTitle("Add Res Codes")
-        layout = QVBoxLayout()
-
-        # Create buttons for categories
-        category_buttons = QHBoxLayout()
-        self.category_buttons = {}
-        for category in categories:
-            button = QPushButton(category)
-            button.clicked.connect(self.display_res_codes)
-            category_buttons.addWidget(button)
-            self.category_buttons[category] = button
-        layout.addLayout(category_buttons)
-
-        # Create a QGridLayout to display the res codes
-        self.res_code_layout = QGridLayout()
-        layout.addLayout(self.res_code_layout)
-
-        # Store res codes and compatibility information
-        self.res_codes = res_codes
-        self.compatibility = compatibility
-
-        # Initialize selected codes and button widgets
-        self.selected_codes = []
-        self.res_code_buttons = {}
-
-        self.setLayout(layout)
-
-    def display_res_codes(self):
-        category = self.sender().text()
-
-        # Clear any existing res code buttons
+    def clear_res_code_layout(self):
         for i in reversed(range(self.res_code_layout.count())):
-            widget = self.res_code_layout.itemAt(i).widget()
-            self.res_code_layout.removeWidget(widget)
-            widget.deleteLater()
-
-        # Add res code buttons for the selected category
-        for index, res_code in enumerate(self.res_codes[category]):
-            button = QPushButton(res_code)
-            button.setCheckable(True)
-            button.toggled.connect(self.toggle_res_code)
-            self.res_code_layout.addWidget(button, index // 4, index % 4)
-            self.res_code_buttons[res_code] = button
-
-        # Update the button colors based on compatibility
-        self.update_res_code_colors()
-
-    def toggle_res_code(self, checked):
-        res_code = self.sender().text()
-
-        if checked:
-            self.selected_codes.append(res_code)
-        else:
-            self.selected_codes.remove(res_code)
-
-        self.update_res_code_colors()
-
-    def update_res_code_colors(self):
-        for res_code, button in self.res_code_buttons.items():
-            if res_code in self.selected_codes:
-                button.setStyleSheet("background-color: gray;")
-                continue
-
-            compatible = True
-            for selected_code in self.selected_codes:
-                if not self.compatibility[res_code][selected_code]:
-                    compatible = False
-                    break
-
-            if compatible:
-                button.setStyleSheet("background-color: green;")
-            else:
-                button.setStyleSheet("background-color: red;")
-
-    def get_selected_codes(self):
-        return self.selected_codes
+            self.res_code_layout.itemAt(i).widget().hide()
 
 
 class ResCodeManagementDialog(QDialog):
@@ -999,24 +1098,11 @@ class ResCodeManagementDialog(QDialog):
         self.res_code_data = res_code_data
         self.resize(320, 240)
         layout = QVBoxLayout()
+        self.selected_res_codes_count = 0
+        self.categories_group_box = CategoriesGroupBox(["Apple", "Samsung", "GeekSquad"], self.show_res_codes)
+        layout.addWidget(self.categories_group_box)
 
-        categories_group_box = QGroupBox("Categories")
-        categories_layout = QHBoxLayout()
-        categories = ["Apple", "Samsung", "GeekSquad"]
-        self.category_buttons = {}
-
-        for category in categories:
-            button = QPushButton(category)
-            button.clicked.connect(self.show_res_codes)
-            categories_layout.addWidget(button)
-            self.category_buttons[category] = button
-
-        categories_group_box.setLayout(categories_layout)
-        layout.addWidget(categories_group_box)
-
-        self.res_codes_group_box = QGroupBox()
-        self.res_code_layout = QGridLayout()
-        self.res_codes_group_box.setLayout(self.res_code_layout)
+        self.res_codes_group_box = ResCodesGroupBox(self)
         layout.addWidget(self.res_codes_group_box)
 
         self.selected_res_codes_input = QLineEdit()
@@ -1031,46 +1117,62 @@ class ResCodeManagementDialog(QDialog):
         self.clear_button.clicked.connect(self.clear_selected_res_codes)
         layout.addWidget(self.clear_button)
 
+        self.fop_time_label = QLabel("FOP Time: 0")
+        layout.addWidget(self.fop_time_label)
+
+        self.bop_time_label = QLabel("BOP Time: 0")
+        layout.addWidget(self.bop_time_label)
+
+        self.total_time_label = QLabel("Total Time: 0")
+        layout.addWidget(self.total_time_label)
+
         self.setLayout(layout)
-        self.res_code_buttons = {}
 
     def clear_selected_res_codes(self):
         self.selected_res_codes_input.clear()
-        for button in self.res_code_buttons.values():
+        self.selected_res_codes_count = 0
+        for button in self.res_codes_group_box.res_code_buttons.values():
             button.setDisabled(False)
             button.setStyleSheet("")
 
+        # Enable category buttons
+        for button in self.categories_group_box.category_buttons.values():
+            button.setDisabled(False)
+
+        self.fop_time_label.setText("FOP Time: 0")
+        self.bop_time_label.setText("BOP Time: 0")
+        self.total_time_label.setText("Total Time: 0")
+
+    def enable_categories(self, enable):
+        for button in self.categories_group_box.category_buttons.values():
+            button.setEnabled(enable)
+
     def show_res_codes(self):
-        self.clear_res_code_layout()
         sender = self.sender()
         category = sender.text()
-
-        self.res_codes_group_box.setTitle(category)
-
         res_codes = self.res_code_data[category]
+        self.res_codes_group_box.show_res_codes(category, res_codes)
+        self.enable_categories(False)
 
-        row = 0
-        col = 0
-        for code, data in res_codes.items():
-            button = QPushButton(code)
-            button.clicked.connect(self.select_res_code)
-            self.res_code_layout.addWidget(button, row, col)
-            self.res_code_buttons[code] = button
-            col += 1
-            if col == 3:
-                col = 0
-                row += 1
-        self.res_code_layout.setRowStretch(row, 1)
+    def get_selected_res_codes(self):
+        return self.selected_res_codes_input.text().split(', ')
 
     def select_res_code(self):
         sender = self.sender()
         res_code = sender.text()
 
-        if sender.styleSheet() == "background-color: red":  # Do not allow selecting incompatible res codes
+        if self.selected_res_codes_count >= 4:
+            QMessageBox.warning(self, "Warning", "Maximum res codes reached.")
             return
+
+        if self.selected_res_codes_input.text():
+            current_res_codes = self.selected_res_codes_input.text().split(', ')
 
         sender.setDisabled(True)
         self.update_selected_res_codes_input(res_code)
+        self.selected_res_codes_count += 1
+
+        self.calculate_total_time()
 
         # Update button colors based on compatibility
         selected_res_code_data = None
@@ -1078,16 +1180,23 @@ class ResCodeManagementDialog(QDialog):
             if res_code in res_codes:
                 selected_res_code_data = res_codes[res_code]
                 break
+        compatible_res_codes = selected_res_code_data["compatible"]
 
-        compatible_res_codes = selected_res_code_data["compatible"].split(", ")
-
-        for code, button in self.res_code_buttons.items():
+        for code, button in self.res_codes_group_box.res_code_buttons.items():
             if code == res_code:
                 continue
-            if code in compatible_res_codes:
+            if compatible_res_codes == "NONE":
+                button.setStyleSheet("background-color: red")
+                button.setDisabled(True)
+            elif code in compatible_res_codes or compatible_res_codes == "Any":
                 button.setStyleSheet("background-color: green")
             else:
                 button.setStyleSheet("background-color: red")
+                button.setDisabled(True)
+
+    def enable_res_code_buttons(self, enable):
+        for button in self.res_codes_group_box.res_code_buttons.values():
+            button.setEnabled(enable)
 
     def update_selected_res_codes_input(self, res_code):
         current_text = self.selected_res_codes_input.text()
@@ -1095,11 +1204,26 @@ class ResCodeManagementDialog(QDialog):
         if not current_text:
             self.selected_res_codes_input.setText(res_code)
         else:
-            self.selected_res_codes_input.setText(current_text + ", " + res_code)
+            self.selected_res_codes_input.setText(f"{current_text}, {res_code}")
 
-    def clear_res_code_layout(self):
-        for i in reversed(range(self.res_code_layout.count())):
-            self.res_code_layout.itemAt(i).widget().deleteLater()
+    def calculate_total_time(self):
+
+
+
+        selected_res_codes = self.selected_res_codes_input.text().split(", ")
+
+        total_fop_time = 0
+        total_bop_time = 0
+        for res_code in selected_res_codes:
+            for category, res_codes in self.res_code_data.items():
+                if res_code in res_codes:
+                    total_fop_time += int(res_codes[res_code]["fop"])
+                    total_bop_time += int(res_codes[res_code]["bop"])
+                    break
+
+        self.fop_time_label.setText(f"FOP Time: {total_fop_time}")
+        self.bop_time_label.setText(f"BOP Time: {total_bop_time}")
+        self.total_time_label.setText(f"Total Time: {total_fop_time + total_bop_time}")
 
 
 class ServiceOrderEditorDialog(QDialog):
@@ -1109,7 +1233,7 @@ class ServiceOrderEditorDialog(QDialog):
         self.setContentsMargins(5, 5, 5, 5)
 
         self.db = db
-        self.all_operators = load_settings()
+        self.all_operators = load_agents(agent_names_only=True)
         self.setWindowTitle("Edit Service Order")
         self.service_order_data = service_order_data
         self.resize(1444, 720)
@@ -1171,12 +1295,12 @@ class ServiceOrderEditorDialog(QDialog):
         res_code_input_layout.addRow(bop_time_label, self.bop_time_value)
 
         # FOP
-        fop_label = QLabel("FOP:")
+        fop_label = QLabel("FOP Time:")
         self.fop_value = QLabel(str(self.service_order_data[1]))
         res_code_input_layout.addRow(fop_label, self.fop_value)
 
         # Total Time for BOP and FOP
-        total_time_label = QLabel("Total Time for BOP and FOP:")
+        total_time_label = QLabel("Total Time:")
         self.total_time_value = QLabel(str(self.service_order_data[1]))
         res_code_input_layout.addRow(total_time_label, self.total_time_value)
 
@@ -1197,13 +1321,43 @@ class ServiceOrderEditorDialog(QDialog):
         layout.addWidget(submit_button, alignment=Qt.AlignCenter)
 
         from TableWidget import ServiceOrderUpdatesLogTable
-        log_table = ServiceOrderUpdatesLogTable(service_order_data[0], self)
+        log_table = ServiceOrderUpdatesLogTable(service_order_data, self)
         self.location_input.setFixedSize(200, 25)
         self.closed_by_input.setFixedSize(200, 25)
         self.status_input.setFixedSize(200, 25)
         self.comments_input.setFixedSize(200, 25)
         layout.addWidget(log_table)
+        self.load_res_codes_from_log()
         self.setLayout(layout)
+
+    def load_res_codes_from_log(self):
+        log_filename = "update_log.json"
+        with open(log_filename, "r") as log_file:
+            data = json.load(log_file)
+
+        service_order_key = str(self.service_order_data[0])
+        updates = data.get(service_order_key, [])
+
+        res_codes_update = None
+        for update in updates:
+            if update['operation'] == "Adding Res Codes":
+                res_codes_update = update
+
+        if res_codes_update:
+            res_codes = ', '.join(res_codes_update['changes']['ResCodes']['after']['Code'])
+            bop_time = res_codes_update['changes']['ResCodes']['after']['BOB_time']
+            fop_time = res_codes_update['changes']['ResCodes']['after']['FOP_time']
+            total_time = res_codes_update['changes']['ResCodes']['after']['Total_time']
+        else:
+            res_codes = "None"
+            bop_time = "None"
+            fop_time = "None"
+            total_time = "None"
+
+        self.res_code_value.setText(res_codes)
+        self.bop_time_value.setText(str(bop_time))
+        self.fop_value.setText(str(fop_time))
+        self.total_time_value.setText(str(total_time))
 
     def submit_changes(self):
         # Retrieve the updated data
@@ -1246,7 +1400,7 @@ class ServiceOrderEditorDialog(QDialog):
     def show_res_code_management_dialog(self):
 
         # Instantiate the ResCodeManagementDialog with the res code data
-        res_code_management_dialog = ResCodeManagementDialog(res_code_data)
+        res_code_management_dialog = ResCodeManagementDialog(self.res_code_data)
         result = res_code_management_dialog.exec_()
 
         if result == QDialog.Accepted:
@@ -1258,33 +1412,36 @@ class ServiceOrderEditorDialog(QDialog):
         result = res_code_dialog.exec()
 
         if result == QDialog.Accepted:
-            selected_res_code = res_code_dialog.selected_res_code
-            selected_category = None
+            selected_res_codes = res_code_dialog.get_selected_res_codes()
+            selected_res_codes_str = ', '.join(selected_res_codes)
+            self.res_code_value.setText(selected_res_codes_str)
 
-            for category, res_codes in self.res_code_data.items():
-                if selected_res_code in res_codes:
-                    selected_category = category
-                    break
+            # Calculate the total BOP and FOP times
+            total_bop_time = 0
+            total_fop_time = 0
+            for res_code in selected_res_codes:
+                selected_category = None
+                for category, res_codes in self.res_code_data.items():
+                    if res_code in res_codes:
+                        selected_category = category
+                        break
+                res_code_data = self.res_code_data[selected_category][res_code]
+                total_bop_time += int(res_code_data["bop"])
+                total_fop_time += int(res_code_data["fop"])
 
-            # Check if the selected res code is compatible with the current res code
-            current_res_code = self.res_code_value.text()
-            current_res_code_data = self.res_code_data[selected_category][current_res_code]
-            new_res_code_data = self.res_code_data[selected_category][selected_res_code]
-            is_compatible = selected_res_code in current_res_code_data["compatible"].split(", ")
+            # Update BOP Time, FOP Time, and Total Time
+            self.bop_time_value.setText(str(total_bop_time))
+            self.fop_value.setText(str(total_fop_time))
+            self.total_time_value.setText(str(total_bop_time + total_fop_time))
+            after = {
+                "ResCodes": {"Code":selected_res_codes,
+                             "BOB_time": total_bop_time,
+                             "FOP_time": total_fop_time,
+                             "Total_time": total_bop_time + total_fop_time}
 
-            # Update the UI based on compatibility
-            if is_compatible:
-                self.res_code_value.setText(selected_res_code)
+            }
+            self.db.update_res_codes(res_code_data=after, so=self.service_order_data[0], operator=self.editing_by)
 
-                # Update BOP Time, FOP, Total Time, and other UI elements based on the selected res code data
-                self.bop_time_value.setText(new_res_code_data["bop"])
-                self.fop_value.setText(new_res_code_data["fop"])
-                total_time = int(new_res_code_data["bop"]) + int(new_res_code_data["fop"])
-                self.total_time_value.setText(str(total_time))
-
-            else:
-                QMessageBox.warning(self, "Conflict",
-                                    "The selected res code is not compatible with the current res code.")
 
 
 class CalendarDialog(QDialog):
@@ -1557,7 +1714,8 @@ class CloseByDialog(QDialog):
 class OperatorDialog(QDialog):
     def __init__(self, location=None):
         super().__init__()
-        self.operators = load_settings()
+        self.agents = load_agents(agent_names_only=True)
+
         self.setContentsMargins(5, 5, 5, 5)
 
         self.setWindowTitle("Select Agent")
@@ -1571,7 +1729,7 @@ class OperatorDialog(QDialog):
         grid_layout = QGridLayout()
         self.button_group = QButtonGroup()
         self.buttons = []
-        for index, operator in enumerate(self.operators):
+        for index, operator in enumerate(self.agents):
             button = QPushButton(operator)
             self.buttons.append(button)
 
@@ -1585,7 +1743,7 @@ class OperatorDialog(QDialog):
 
     def on_button_clicked(self, button):
         button_id = self.button_group.id(button)
-        self.selected_operator = self.operators[button_id]
+        self.selected_operator = self.agents[button_id]
 
         confirmation_message = QMessageBox(self)
         confirmation_message.setIcon(QMessageBox.Question)

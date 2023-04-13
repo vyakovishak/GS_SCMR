@@ -1,0 +1,36 @@
+{
+  "Agents": {
+    "ARA": {
+      "JMM": {
+        "Weekly": 123,
+        "Monthly": 0
+      },
+      "MM": {
+        "Weekly": 213123,
+        "Monthly": 0
+      },
+      "gg": {
+        "Weekly": 0,
+        "Monthly": 0
+      },
+      "1": {
+        "Weekly": 0,
+        "Monthly": 0
+      }
+    },
+    "CA": {
+      "DICK": {
+        "Weekly": 23,
+        "Monthly": 0
+      },
+      "asd": {
+        "Weekly": 22,
+        "Monthly": 440
+      },
+      "HH": {
+        "Weekly": 38,
+        "Monthly": 120
+      }
+    }
+  }
+}

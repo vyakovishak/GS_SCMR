@@ -2,7 +2,7 @@
 
 from PySide6 import QtWidgets
 from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHeaderView, QDialog, QVBoxLayout, QLabel, \
-    QItemDelegate
+    QItemDelegate, QPushButton
 from PySide6.QtWidgets import QItemDelegate, QComboBox, QDialog, QVBoxLayout, QListWidget
 from DialogsWindow import OperatorDialog, ServiceOrderEditorDialog, ServiceOrderView
 from ServiceOrderDB import ServiceOrderDB
@@ -95,29 +95,61 @@ class ServiceOrderUpdatesLogTable(QTableWidget):
         service_order_key = str(self.service_order)
         updates = data.get(service_order_key, [])
 
-        self.setColumnCount(12)  # Increase the column count to 12
+        self.setColumnCount(10)  # Increase the column count to 12
         self.setRowCount(len(updates))
         self.setHorizontalHeaderLabels(
             ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status",
-             "Comments", "Updated By", "FOB", "FOP", "Res Codes"])  # Add "FOB", "FOP", and "Res Codes" to the header labels
+             "Comments", "Updated By",  "Res Codes"])  # Add "FOB", "FOP", and "Res Codes" to the header labels
         self.horizontalHeader().setStretchLastSection(True)
 
         for i, update in enumerate(sorted(updates, key=lambda x: x['timestamp'])):
             self.setItem(i, 0, QTableWidgetItem(update['timestamp']))
             self.setItem(i, 1, QTableWidgetItem(update['operation']))
             self.setItem(i, 2, QTableWidgetItem(update['operator']))
-            for j, key in enumerate(['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'UpdatedBy', 'FOB', 'FOP', 'ResCodes'],
-                                    start=3):  # Add "FOB", "FOP", and "ResCodes" to the keys list
+            for j, key in enumerate(
+                    ['Location', 'CompletionDate', 'ClosedBy', 'Status', 'Comments', 'UpdatedBy', 'ResCodes'],
+                    start=3):
                 if key in update['changes']:
-                    before = str(update['changes'][key]['before']) if update['changes'][key]['before'] else ""
-                    after = str(update['changes'][key]['after'])
-                    self.setItem(i, j, QTableWidgetItem(f"{before} → {after}" if before else after))
+                    if key == 'ResCodes':
+                        codes = ', '.join(update['changes'][key]['after']['Code'])
+                        self.setItem(i, j, QTableWidgetItem(codes))
+                    else:
+                        before = str(update['changes'][key]['before']) if update['changes'][key]['before'] else ""
+                        after = str(update['changes'][key]['after'])
+                        self.setItem(i, j, QTableWidgetItem(f"{before} → {after}" if before else after))
 
         self.setItemDelegate(AlignCenterDelegate(self))
         self.resizeColumnsToContents()
         self.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)  # Stretch out all the columns
         self.setSortingEnabled(True)
 
+    def mouseDoubleClickEvent(self, event):
+        item = self.itemAt(event.pos())
+        if item is not None:
+            row = item.row()
+            update = {}
+            for j, key in enumerate(
+                    ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status",
+                     "Comments", "Updated By", "Res Codes"]):
+                table_item = self.item(row, j)
+                update[key] = table_item.text() if table_item else ""
+            self.show_update_viewer(update)
+
+    def show_update_viewer(self, update):
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Update Viewer")
+        dialog.setWindowModality(Qt.ApplicationModal)
+
+        layout = QVBoxLayout(dialog)
+        for key, value in update.items():
+            label = QLabel(f"{key}: {value}")
+            layout.addWidget(label)
+
+        ok_button = QPushButton("OK")
+        ok_button.clicked.connect(dialog.accept)
+        layout.addWidget(ok_button)
+
+        dialog.exec()
 
 
 class CalendarTable(QTableWidget):

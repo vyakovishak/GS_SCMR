@@ -8,7 +8,7 @@
       "fop": "25",
       "bop": "25",
       "overview": "Battery Same Unit Repair in Store through GSX",
-      "compatible": "May be used with ABAT, AFAL, AREC, ASPK, AVIB, ACAM, AWUR, ARDO"
+      "compatible": ["ABAT", "AFAL", "AREC", "ASPK", "AVIB", "ACAM", "AWUR", "ARDO"]
     },
     "ASCR": {
       "rescode": "ASCR",
@@ -18,7 +18,7 @@
       "fop": "25",
       "bop": "30",
       "overview": "Display Same Unit Repair in Store through GSX",
-      "compatible": "May be used with ABAT, AFAL, AREC, ASPK, AVIB, ACAM, AWUR, ARDO"
+      "compatible": ["ABAT", "AFAL", "AREC", "ASPK", "AVIB", "ACAM", "AWUR", "ARDO"]
     },
     "ASFT": {
       "rescode": "ASFT",
@@ -28,7 +28,7 @@
       "fop": "25",
       "bop": "10",
       "overview": "Software troubleshooting performed in GSX",
-      "compatible": "Standalone Res Code"
+      "compatible": ["Any"]
     },
     "AREC": {
       "rescode": "AREC",
@@ -38,7 +38,7 @@
       "fop": "25",
       "bop": "25",
       "overview": "Receiver Same Unit Repair in Store through GSX",
-      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AVIB, ACAM"
+      "compatible": ["ABAT", "ASCR", "ARDO", "ASPK", "AVIB", "ACAM"]
     },
     "ASPK": {
       "rescode": "ASPK",
@@ -48,7 +48,7 @@
       "fop": "25",
       "bop": "25",
       "overview": "Speaker Same Unit Repair in Store through GSX",
-      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AVIB, ACAM"
+      "compatible": ["ABAT", "ASCR", "ARDO", "ASPK", "AVIB", "ACAM"]
     },
     "AVIB": {
       "rescode": "AVIB",
@@ -58,7 +58,7 @@
       "fop": "25",
       "bop": "25",
       "overview": "Vibe Motor Same Unit Repair in Store through GSX",
-      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AREC, ACAM"
+      "compatible": ["ABAT", "ASCR", "ARDO", "ASPK", "AREC", "ACAM"]
     },
     "ACAM": {
       "rescode": "ACAM",
@@ -68,7 +68,7 @@
       "fop": "25",
       "bop": "25",
       "overview": "Camera Same Unit Repair in Store through GSX",
-      "compatible": "May be used with ABAT, ASCR, ARDO, ASPK, AVIB, AREC"
+      "compatible": ["ABAT", "ASCR", "ARDO", "ASPK", "AVIB", "AREC"]
     },
     "ARDO": {
       "rescode": "ARDO",
@@ -78,7 +78,7 @@
       "fop": "0",
       "bop": "20",
       "overview": "Repair Redo on Same Unit Repair",
-      "compatible": "May be used with ABAT, ASCR, AFAL, AREC, ASPK, AVIB, ACAM"
+      "compatible": ["ABAT", "ASCR", "AFAL", "AREC", "ASPK", "AVIB", "ACAM"]
     },
     "ALON**": {
       "rescode": "ALON**",
@@ -88,7 +88,7 @@
       "fop": "20",
       "bop": "0",
       "overview": "Apple Loaner assigned to a client through GSX",
-      "compatible": "May only be used with AMAL"
+      "compatible": ["AMAL"]
     },
     "AWUR": {
       "rescode": "AWUR",
@@ -98,7 +98,7 @@
       "fop": "20",
       "bop": "9",
       "overview": "Whole Unit Replacement through GSX",
-      "compatible": "Standalone Res Code"
+      "compatible": ["Any"]
     },
     "AFAL": {
       "rescode": "AFAL",
@@ -108,7 +108,7 @@
       "fop": "0",
       "bop": "20",
       "overview": "Whole Unit Replacement after failed Same Unit Repair",
-      "compatible": "May be used with ABAT, ASCR, ARDO, AREC, ASPK, AVIB, ACAM"
+      "compatible": ["ABAT", "ASCR", "ARDO", "AREC", "ASPK", "AVIB", "ACAM"]
     },
     "AMAL": {
       "rescode": "AMAL",
@@ -118,7 +118,7 @@
       "fop": "20",
       "bop": "9",
       "overview": "Mail in Repair shipped to Apple through GSX",
-      "compatible": "May only be used with ALON"
+      "compatible": ["ALON"]
     },
     "ACON*": {
       "rescode": "ACON",
@@ -128,7 +128,7 @@
       "fop": "20",
       "bop": "0",
       "overview": "Apple Consultation, the client device must be present",
-      "compatible": "Standalone Res Code"
+      "compatible": ["Any"]
     }
   },
   "Samsung": {
@@ -140,7 +140,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Screen replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SBAK": {
       "rescode": "SBAK",
@@ -150,7 +150,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Back glass/cover replacement, Galaxy Diagnostics IQC & OQC, software update and repair validation using Fenrir",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SFBR": {
       "rescode": "SFBR",
@@ -160,7 +160,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Screen and back glass/cover replacement, Galaxy Diagnostics IQC & OQC, software update and repair validation using Fenrir",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SFCR": {
       "rescode": "SFCR",
@@ -170,7 +170,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Front Screen and component replacement, Galaxy Diagnostics IQC & OQC, software update and repair validation using Fenrir",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SBCR": {
       "rescode": "SBCR",
@@ -180,7 +180,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Back glass/cover and component replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SFBC": {
       "rescode": "SFBC",
@@ -190,7 +190,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Front screen, back glass/cover and component replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SBAT": {
       "rescode": "SBAT",
@@ -200,7 +200,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Battery replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SCAM": {
       "rescode": "SCAM",
@@ -210,7 +210,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Camera replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SSPK": {
       "rescode": "SSPK",
@@ -220,7 +220,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Speaker replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SBUT": {
       "rescode": "SBUT",
@@ -230,7 +230,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Button replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SAUD": {
       "rescode": "SAUD",
@@ -240,7 +240,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Audio Jack replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SVIB": {
       "rescode": "SVIB",
@@ -250,7 +250,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Vibration Motor replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SREC": {
       "rescode": "SREC",
@@ -260,7 +260,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Receiver replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SCMP": {
       "rescode": "SCMP",
@@ -270,7 +270,7 @@
       "fop": "25",
       "bop": "67",
       "overview": "Component (not listed) replacement, Galaxy Diagnostics IQC & OQC, software update, and repair validation using Fenrir.",
-      "compatible": "Can ONLY be used with SRDO and not in combination with other resolution codes."
+      "compatible": ["SRDO"]
     },
     "SSFT": {
       "rescode": "SSFT",
@@ -280,7 +280,7 @@
       "fop": "25",
       "bop": "52",
       "overview": "Software repair/update/installation and Galaxy Diagnostics IQC. Galaxy Diagnostics OQC and Fenrir may be used.",
-      "compatible": "Cannot be used in combination with other resolution codes"
+      "compatible": ["NONE"]
     },
     "SOSE": {
       "rescode": "SOSE",
@@ -290,7 +290,7 @@
       "fop": "25",
       "bop": "52",
       "overview": "Galaxy Diagnostics IQC and On-Site Exchange are performed.",
-      "compatible": "Cannot be used in combination with other resolution codes"
+      "compatible": ["NONE"]
     },
     "SBER": {
       "rescode": "SBER",
@@ -300,7 +300,7 @@
       "fop": "25",
       "bop": "25",
       "overview": "The device is designated as beyond economical repair during repair inspection. Galaxy Diagnostics IQC & OQC may be used to determine BER.",
-      "compatible": "Cannot be used in combination with other resolution codes"
+      "compatible": ["NONE"]
     },
     "SNFF": {
       "rescode": "SNFF",
@@ -310,7 +310,7 @@
       "fop": "25",
       "bop": "52",
       "overview": "The device is showing no signs of issue after performing Galaxy Diagnostics IQC and agent troubleshooting.",
-      "compatible": "Cannot be used in combination with other resolution codes"
+      "compatible": ["NONE"]
     },
     "SACC": {
       "rescode": "SACC",
@@ -320,7 +320,7 @@
       "fop": "25",
       "bop": "5",
       "overview": "An accessory is replaced using GSPN.",
-      "compatible": "Cannot be used in combination with other resolution codes"
+      "compatible": ["NONE"]
     },
     "SRDO": {
       "rescode": "SRDO",
@@ -340,7 +340,7 @@
       "fop": "20",
       "bop": "0",
       "overview": "Client education to review the basic functions of a Samsung device.",
-      "compatible": "Cannot be used in combination with other resolution codes."
+      "compatible": ["NONE"]
     }
   },
   "GeekSquad": {
@@ -357,7 +357,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install battery, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSDI": {
       "rescode": "GSDI",
@@ -367,7 +367,7 @@
       "fop": "34",
       "bop": "45",
       "overview": "Diagnostic completed by Precinct with an operating system repair completed through remote connection",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSHD": {
       "rescode": "GSHD",
@@ -377,7 +377,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install hard drive, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSHW": {
       "rescode": "GSHW",
@@ -387,7 +387,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install miscellaneous internal parts, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSMM": {
       "rescode": "GSMM",
@@ -397,7 +397,7 @@
       "fop": "34",
       "bop": "10",
       "overview": "Install unlimited memory to one device and test the device",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSMO": {
       "rescode": "GSMO",
@@ -407,7 +407,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install modem, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSNW": {
       "rescode": "GSNW",
@@ -417,7 +417,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install network card, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSOD": {
       "rescode": "GSOD",
@@ -427,7 +427,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install ODD, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSOI": {
       "rescode": "GSOI",
@@ -437,7 +437,7 @@
       "fop": "34",
       "bop": "20",
       "overview": "Install one operating system, drivers, critical updates, MFG Software (for restore), and test OS",
-      "compatible": "GSOS or Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSOS": {
       "rescode": "GSOS",
@@ -457,7 +457,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install printer/scanner, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSPS": {
       "rescode": "GSPS",
@@ -467,7 +467,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install power supply, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSPU": {
       "rescode": "GSPU",
@@ -477,7 +477,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install CPU, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSSB": {
       "rescode": "GSSB",
@@ -487,7 +487,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install system board, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSSC": {
       "rescode": "GSSC",
@@ -497,7 +497,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install the sound card, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSSW": {
       "rescode": "GSSW",
@@ -507,7 +507,7 @@
       "fop": "34",
       "bop": "0",
       "overview": "The software installs are completed through a remote connection with an operating system repair",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSPW": {
       "rescode": "GSPW",
@@ -517,7 +517,7 @@
       "fop": "34",
       "bop": "20",
       "overview": "Remove the Password from Macbook or Windows computer, and assist Client with setting a new password if desired",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSVC": {
       "rescode": "GSVC",
@@ -527,7 +527,7 @@
       "fop": "34",
       "bop": "18",
       "overview": "Install video card, install included SW/drivers, update device/drivers, and test",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSHH": {
       "rescode": "GSHH",
@@ -537,7 +537,7 @@
       "fop": "0",
       "bop": "15",
       "overview": "Minor repair that does not fall under the additional scope of work and fits into a 15-minute timeframe",
-      "compatible": "Any Standalone Resolution Code may be used with GSDI"
+      "compatible": ["Any"]
     },
     "GSCS": {
       "rescode": "GSCS",
@@ -557,7 +557,7 @@
       "fop": "20",
       "bop": "0",
       "overview": "Perform \"OOBE\", install firmware updates, set up accounts, and educate client. New devices and Open Box purchases only.",
-      "compatible": "Standalone Res Code, do not use other codes. Not for PC/Tablet Setup"
+      "compatible": ["Any"]
     },
     "GSFM": {
       "rescode": "GSFM",
@@ -567,7 +567,7 @@
       "fop": "10",
       "bop": "0",
       "overview": "Create restore discs or USB drives. Includes Geek Squad 32GB flash drive",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSSH": {
       "rescode": "GSSH",
@@ -577,7 +577,7 @@
       "fop": "9",
       "bop": "0",
       "overview": "Install a screen shield on one mobile phone or one handheld gaming device",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSDB": {
       "rescode": "GSDB",
@@ -587,7 +587,7 @@
       "fop": "34",
       "bop": "57",
       "overview": "Transfer data to another media/device, import data, and configure external HDD. (Includes qualifying hard drive)",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "None": {
       "rescode": "None",
@@ -597,7 +597,7 @@
       "fop": "15",
       "bop": "0",
       "overview": "Shipping and receiving products through Nova",
-      "compatible": "No Res Code Available"
+      "compatible": ["NONE"]
     },
     "GSRD": {
       "rescode": "GSRD",
@@ -607,7 +607,7 @@
       "fop": "34",
       "bop": "57",
       "overview": "Recover Deleted Data from hard drives or memory cards. Not to be used for failing hard drives. (Estimate fee additional)",
-      "compatible": "Any Standalone Resolution Code"
+      "compatible": ["Any"]
     },
     "GSSF": {
       "rescode": "GSSF",
@@ -617,7 +617,7 @@
       "fop": "20",
       "bop": "0",
       "overview": "Assist Client with Express Replacement through the Agent Portal",
-      "compatible": "Standalone Res Code, do not use other codes."
+      "compatible": ["Any"]
     },
     "GSOB": {
       "rescode": "GSOB",
@@ -627,7 +627,7 @@
       "fop": "19",
       "bop": "0",
       "overview": "Used for items all open item Nova Tags.",
-      "compatible": "Standalone Res Code, do not use other codes."
+      "compatible": ["Any"]
     },
     "GS30": {
       "rescode": "GS30",
@@ -637,7 +637,7 @@
       "fop": "40",
       "bop": "0",
       "overview": "30 Minute Paid Tutorial with Client, service order needs to be created. (Ring SKU once per 30-minute tutorial)",
-      "compatible": "Standalone Res Code, do not use other codes."
+      "compatible": ["Any"]
     },
     "GS60": {
       "rescode": "GS60",
@@ -647,7 +647,7 @@
       "fop": "70",
       "bop": "0",
       "overview": "60 Minute Paid Tutorial with Client, service order needs to be created. (Ring SKU 8899138 twice)",
-      "compatible": "Standalone Res Code, do not use other codes."
+      "compatible": ["Any"]
     },
     "GSCO": {
       "rescode": "GSCO",
@@ -657,7 +657,7 @@
       "fop": "20",
       "bop": "0",
       "overview": "Standalone consultation at the counter, service order needs to be created",
-      "compatible": "Standalone Res Code, do not use other codes."
+      "compatible": ["Any"]
     },
     "QUIT": {
       "rescode": "QUIT",
@@ -667,7 +667,7 @@
       "fop": "0",
       "bop": "0",
       "overview": "Used when no service is performed and no revenue is expected",
-      "compatible": "Standalone Res Code, do not use other codes."
+      "compatible": ["Any"]
     }
   }
 }

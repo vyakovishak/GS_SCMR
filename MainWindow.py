@@ -10,11 +10,11 @@ from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, 
 from PySide6.QtGui import QIcon, QPixmap, QAction
 from PySide6.QtCore import Qt, QTimer, Signal
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
-    load_settings, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
+    load_agents, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
     QRCodeGeneratorDialog, LocationWarningDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
-from utils import load_settings
+from utils import load_agents
 
 
 # Define the main window class
@@ -29,7 +29,7 @@ class MainWin(QMainWindow):
 
         self.setContentsMargins(0, 0, 0, 0)
         # Load application settings
-        self.settings = load_settings()
+        self.settings = load_agents()
 
         # Create a status bar
         self.status_bar = QStatusBar(self)
@@ -175,7 +175,7 @@ class MainWin(QMainWindow):
     # Display the calendar dialog
     def show_calendar_dialog(self):
         # Load settings and create the calendar dialog
-        all_operators = load_settings()
+        all_operators = load_agents(agent_names_only=True)
         calendar_dialog = CalendarDialog(all_operators, self.db)
         calendar_dialog.exec_()
 
@@ -326,7 +326,8 @@ class MainWin(QMainWindow):
     def show_location_warning(self, location):
         msg_box = QMessageBox.warning(self, "Location already exists",
                                       f"The location '{location}' already exists. "
-                                      "Do you want to add the unit to the current location or choose a different location?",
+                                      "Do you want to add the unit to the current location or choose a different "
+                                      "location?",
                                       QMessageBox.Yes | QMessageBox.No)
 
         if msg_box == QMessageBox.Yes:
