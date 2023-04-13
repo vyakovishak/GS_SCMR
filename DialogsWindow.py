@@ -1321,7 +1321,7 @@ class ServiceOrderEditorDialog(QDialog):
         layout.addWidget(submit_button, alignment=Qt.AlignCenter)
 
         from TableWidget import ServiceOrderUpdatesLogTable
-        log_table = ServiceOrderUpdatesLogTable(service_order_data, self)
+        log_table = ServiceOrderUpdatesLogTable(service_order_data[0], self)
         self.location_input.setFixedSize(200, 25)
         self.closed_by_input.setFixedSize(200, 25)
         self.status_input.setFixedSize(200, 25)
@@ -1331,28 +1331,12 @@ class ServiceOrderEditorDialog(QDialog):
         self.setLayout(layout)
 
     def load_res_codes_from_log(self):
-        log_filename = "update_log.json"
-        with open(log_filename, "r") as log_file:
-            data = json.load(log_file)
+        service_order_data = self.db.select_service_order(self.service_order_data[0])
 
-        service_order_key = str(self.service_order_data[0])
-        updates = data.get(service_order_key, [])
-
-        res_codes_update = None
-        for update in updates:
-            if update['operation'] == "Adding Res Codes":
-                res_codes_update = update
-
-        if res_codes_update:
-            res_codes = ', '.join(res_codes_update['changes']['ResCodes']['after']['Code'])
-            bop_time = res_codes_update['changes']['ResCodes']['after']['BOB_time']
-            fop_time = res_codes_update['changes']['ResCodes']['after']['FOP_time']
-            total_time = res_codes_update['changes']['ResCodes']['after']['Total_time']
-        else:
-            res_codes = "None"
-            bop_time = "None"
-            fop_time = "None"
-            total_time = "None"
+        res_codes = service_order_data[0][13]
+        bop_time = service_order_data[0][14]
+        fop_time = service_order_data[0][15]
+        total_time = service_order_data[0][16]
 
         self.res_code_value.setText(res_codes)
         self.bop_time_value.setText(str(bop_time))

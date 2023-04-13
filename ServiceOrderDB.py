@@ -61,10 +61,10 @@ class ServiceOrderDB:
                 CheckedOut VARCHAR(255) DEFAULT 'NO',
                 CFI VARCHAR(255) DEFAULT 'NO',
                 Scanned BOOLEAN DEFAULT FALSE,
-                ResCode TEXT,
-                BOPTime INT,
-                FOPTime INT,
-                TotalTime INT
+                ResCode  VARCHAR(255) DEFAULT 'None',
+                BOPTime  VINT DEFAULT '0',
+                FOPTime  INT DEFAULT '0',
+                TotalTime  INT DEFAULT '0'
             );"""
 
         self.execute(sql, commit=True)
@@ -260,10 +260,10 @@ class ServiceOrderDB:
                         before=before,
                         after=res_code_data)
         sql_command = "UPDATE ServiceOrders SET ResCode=?, BOPTime=?, FOPTime=?, TotalTime=? WHERE ServiceOrder=?"
-        return self.execute(sql_command, parameters=(res_code_data["Code"],
-                                                     res_code_data["BOPTime"],
-                                                     res_code_data["FOPTime"],
-                                                     res_code_data["TotalTime"], so), commit=True)
+        return self.execute(sql_command, parameters=(str(res_code_data["ResCodes"]["Code"]),
+                                                     res_code_data["ResCodes"]["BOB_time"],
+                                                     res_code_data["ResCodes"]["FOP_time"],
+                                                     res_code_data["ResCodes"]["Total_time"], so), commit=True)
 
     def update_comments(self, comments, so, operator):
         current_data = self.select_unit(column='Comments', ServiceOrder=so)
