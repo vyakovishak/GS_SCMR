@@ -11,7 +11,7 @@ from PySide6.QtGui import QIcon, QPixmap, QAction
 from PySide6.QtCore import Qt, QTimer, Signal
 from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
     load_agents, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
-    QRCodeGeneratorDialog, LocationWarningDialog
+    QRCodeGeneratorDialog, LocationWarningDialog, StatsDialog
 from ServiceOrderDB import ServiceOrderDB
 from TableWidget import SCMRTable
 from utils import load_agents
@@ -91,6 +91,10 @@ class MainWin(QMainWindow):
         qr_code_generator_action.triggered.connect(self.open_qr_code_generator)
         menubar.addAction(qr_code_generator_action)
 
+        self.stats_action = QAction("Stats", self)
+        self.stats_action.triggered.connect(self.show_stats_dialog)
+        menubar.addAction(self.stats_action)
+
         about_action = QAction("About", self)
         about_action.triggered.connect(self.show_about_dialog)
         menubar.addAction(about_action)
@@ -114,6 +118,10 @@ class MainWin(QMainWindow):
 
         # Add the QVBoxLayout to the main layout
         main_layout.addLayout(input_buttons_layout)
+
+    def show_stats_dialog(self):
+        stats_dialog = StatsDialog(self, self.db)
+        stats_dialog.exec_()
 
     def open_qr_code_generator(self):
         qr_code_generator_dialog = QRCodeGeneratorDialog()

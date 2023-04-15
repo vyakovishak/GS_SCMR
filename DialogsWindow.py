@@ -1,6 +1,10 @@
 # DialogsWindow.py
 from typing import Any
 from functools import partial
+
+import np as np
+import pyqtgraph as pg
+from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QTableWidget, QCheckBox, QComboBox
 from PySide6.QtCore import Qt, QDir, QByteArray
@@ -47,6 +51,146 @@ class AlignCenterDelegate(QItemDelegate):
     def paint(self, painter, option, index):
         option.displayAlignment = Qt.AlignHCenter | Qt.AlignVCenter
         super(AlignCenterDelegate, self).paint(painter, option, index)
+
+
+class StatsDialog(QDialog):
+    def __init__(self, db, parent=None):
+        super().__init__(parent)
+        self.db = db
+        self.setWindowTitle("Stats")
+        self.setFixedSize(800, 600)
+
+        layout = QVBoxLayout()
+
+        self.graph_group_box = QGroupBox("Closed Units")
+        graph_layout = QGridLayout()
+
+        # Use your database function to get the data
+        self.data = self.get_data_from_database()
+        self.chart = self.create_chart(self.data)
+
+        self.chart_view = QChartView(self.chart)
+        self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        self.filters_button = QPushButton("Filters")
+        self.filters_button.clicked.connect(self.show_filters_dialog)
+
+        graph_layout.addWidget(self.chart_view, 0, 0)
+        graph_layout.addWidget(self.filters_button, 1, 0)
+        self.graph_group_box.setLayout(graph_layout)
+
+        layout.addWidget(self.graph_group_box)
+        self.setLayout(layout)
+
+    def create_chart(self, data):
+        chart = QChart()
+
+        series = QBarSeries()
+        for agent_name, closed_units in data.items():
+            bar_set = QBarSet(agent_name)
+            bar_set << closed_units
+            series.append(bar_set)
+
+        chart.addSeries(series)
+
+        categories = [key for key in data.keys()]
+        axis_x = QBarCategoryAxis()
+        axis_x.append(categories)
+        chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
+        series.attachAxis(axis_x)
+
+        axis_y = QValueAxis()
+        chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
+        series.attachAxis(axis_y)
+
+        chart.setTitle("Closed Units")
+        chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+
+        return chart
+
+    def get_data_from_database(self):
+        # Replace this with your database function
+        data = self.db.select_closed_orders_by_agent(self.start_date, self.end_date, self.selected_agent)
+        print(data)
+
+    def show_filters_dialog(self):
+        filters_dialog = FiltersDialog(self)
+        if filters_dialog.exec() == QDialog.DialogCode.Accepted:
+            self.start_date, self.end_date, self.selected_agent = filters_dialog.get_filters()
+
+
+class FiltersDialog(QDialog):
+    def __init__(self):
+        super().__init__()
+        self.setWindowTitle("Filters")
+        self.setFixedSize(600, 400)
+
+        layout = QVBoxLayout()
+
+        # Add calendar widgets and labels for start and end dates
+        self.calendar = QCalendarWidget()
+        layout.addWidget(self.calendar)
+
+        self.range_label = QLabel()
+        font = QFont()
+        font.setPointSize(14)
+        font.setBold(True)
+        self.range_label.setFont(font)
+        self.range_label.setAlignment(Qt.AlignmentFlag.AlignCenter)
+        layout.addWidget(self.range_label)
+
+        self.start_date = None
+        self.end_date = None
+
+        self.calendar.clicked.connect(self.update_date_range)
+
+        # Add buttons for applying filters and closing the dialog
+        button_box = QDialogButtonBox(QDialogButtonBox.Cancel | QDialogButtonBox.Apply)
+        button_box.button(QDialogButtonBox.Apply).clicked.connect(self.apply_filters)
+        button_box.rejected.connect(self.reject)
+        layout.addWidget(button_box)
+
+        # Add QLabel and QComboBox for agents
+        self.agent_label = QLabel("Agent")
+        self.agent_label.setStyleSheet("font-size: 14px;")
+        layout.addWidget(self.agent_label)
+
+        self.agent_combobox = QComboBox()
+        self.agent_combobox.addItem("ALL")
+        self.agent_combobox.addItems(load_agents(agent_names_only=True))
+        layout.addWidget(self.agent_combobox)
+
+        self.setLayout(layout)
+
+    def update_date_range(self, clicked_date):
+        if not self.start_date:
+            self.start_date = clicked_date
+            self.end_date = None
+        elif not self.end_date:
+            if clicked_date < self.start_date:
+                self.start_date, self.end_date = clicked_date, self.start_date
+            else:
+                self.end_date = clicked_date
+        else:
+            self.start_date = clicked_date
+            self.end_date = None
+
+        # Update label with selected date range
+        if self.start_date and not self.end_date:
+            self.range_label.setText(self.start_date.toString("yyyy-MM-dd"))
+        elif self.start_date and self.end_date:
+            self.range_label.setText(
+                f"{self.start_date.toString('yyyy-MM-dd')} - {self.end_date.toString('yyyy-MM-dd')}")
+
+    def apply_filters(self):
+        if self.start_date is None and self.end_date is None:
+            QMessageBox.warning(self, "Warning", "Please select a date range.")
+            return
+        else:
+            self.accept()
+
+    def get_filters(self):
+        return self.start_date, self.end_date, self.agent_combobox.currentText()
 
 
 class QRCodeGeneratorDialog(QDialog):
@@ -1208,8 +1352,6 @@ class ResCodeManagementDialog(QDialog):
 
     def calculate_total_time(self):
 
-
-
         selected_res_codes = self.selected_res_codes_input.text().split(", ")
 
         total_fop_time = 0
@@ -1418,14 +1560,13 @@ class ServiceOrderEditorDialog(QDialog):
             self.fop_value.setText(str(total_fop_time))
             self.total_time_value.setText(str(total_bop_time + total_fop_time))
             after = {
-                "ResCodes": {"Code":selected_res_codes,
+                "ResCodes": {"Code": selected_res_codes,
                              "BOB_time": total_bop_time,
                              "FOP_time": total_fop_time,
                              "Total_time": total_bop_time + total_fop_time}
 
             }
             self.db.update_res_codes(res_code_data=after, so=self.service_order_data[0], operator=self.editing_by)
-
 
 
 class CalendarDialog(QDialog):

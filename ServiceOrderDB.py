@@ -110,6 +110,14 @@ class ServiceOrderDB:
 
         self.execute(sql_command, parameters=parameters, commit=True)
 
+    def select_closed_orders_by_agent(self, start_date, end_date, agent=None):
+        if agent == None and agent != "ALL":
+            agent_command = f'AND ClosedBy="{agent}"'
+
+        sql = f"SELECT CompletionDate, ClosedBy as closed_units FROM ServiceOrders WHERE 1 {agent_command}"
+
+        return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
+
     # Selects all service orders that are not checked out
     def select_service_order(self, so):
         sql_command = "SELECT * FROM ServiceOrders WHERE ServiceOrder=?"
@@ -186,6 +194,10 @@ class ServiceOrderDB:
         sql_command = "SELECT * FROM ServiceOrders"
         return self.execute(sql_command, fetchall=True)
 
+    def select_all_service_orders_not_deleted(self):
+        sql_command = "SELECT * FROM ServiceOrders WHERE CFI='NO'"
+        return self.execute(sql_command, fetchall=True)
+
     def check_location_exists(self, location: str) -> bool:
 
         sql_command = "SELECT * FROM ServiceOrders WHERE Location = ? AND CheckedOut='NO' AND CFI='NO'"
@@ -249,11 +261,11 @@ class ServiceOrderDB:
         TotalTime = self.select_unit(column='TotalTime', ServiceOrder=so)
 
         before = {
-                "ResCodes": {"Code":ResCode,
-                             "BOB_time": BOPTime,
-                             "FOP_time": FOPTime,
-                             "Total_time": TotalTime}
-            }
+            "ResCodes": {"Code": ResCode,
+                         "BOB_time": BOPTime,
+                         "FOP_time": FOPTime,
+                         "Total_time": TotalTime}
+        }
         self.log_update("Updated Location",
                         ServiceOrder=so,
                         operator=operator,
