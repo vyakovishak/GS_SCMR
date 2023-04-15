@@ -1,8 +1,8 @@
 # DialogsWindow.py
 from typing import Any
 from functools import partial
-
-import np as np
+from datetime import date, timedelta
+import np
 import pyqtgraph as pg
 from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
@@ -11,6 +11,8 @@ from PySide6.QtCore import Qt, QDir, QByteArray
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
 from PySide6.QtPrintSupport import QPrinter
+from PySide6.QtCharts import QStackedBarSeries
+
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QSplitter, QListView, \
     QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget, QApplication, QInputDialog
@@ -55,68 +57,170 @@ class AlignCenterDelegate(QItemDelegate):
 
 class StatsDialog(QDialog):
     def __init__(self, db, parent=None):
-        super().__init__(parent)
+        super().__init__()
         self.db = db
         self.setWindowTitle("Stats")
         self.setFixedSize(800, 600)
+        self.closed_units_data = {}
+        self.check_out_data = {}
 
-        layout = QVBoxLayout()
+        # Set default start and end dates
+        self.end_date = date.today()
+        self.start_date = self.end_date - timedelta(days=30)
+        self.selected_agent = "ALL"
 
-        self.graph_group_box = QGroupBox("Closed Units")
-        graph_layout = QGridLayout()
+        main_layout = QVBoxLayout()
+        layout = QHBoxLayout()
+
+        self.date_range_label = QLabel()
+        main_layout.addWidget(self.date_range_label)
+
+        self.graph_group_box = QGroupBox("Closed By")
+        graph_layout = QVBoxLayout()
 
         # Use your database function to get the data
-        self.data = self.get_data_from_database()
-        self.chart = self.create_chart(self.data)
+        self.get_data_from_database()
+        self.chart = self.create_chart(self.closed_units_data, "Closed Units")
 
         self.chart_view = QChartView(self.chart)
         self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
 
-        self.filters_button = QPushButton("Filters")
-        self.filters_button.clicked.connect(self.show_filters_dialog)
-
-        graph_layout.addWidget(self.chart_view, 0, 0)
-        graph_layout.addWidget(self.filters_button, 1, 0)
+        graph_layout.addWidget(self.chart_view)
         self.graph_group_box.setLayout(graph_layout)
 
-        layout.addWidget(self.graph_group_box)
-        self.setLayout(layout)
+        # Check Out group box
+        self.check_out_group_box = QGroupBox("Check Out By")
+        check_out_layout = QVBoxLayout()
 
-    def create_chart(self, data):
+        self.check_out_chart = self.create_chart(self.check_out_data, "Check Out Units")
+
+        check_out_chart_view = QChartView(self.check_out_chart)
+        check_out_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+
+        check_out_layout.addWidget(check_out_chart_view)
+        self.check_out_group_box.setLayout(check_out_layout)
+
+        layout.addWidget(self.graph_group_box)
+        layout.addWidget(self.check_out_group_box)
+        main_layout.addLayout(layout)
+
+        self.closed_units_filter_btn = QPushButton("Filters")
+        self.closed_units_filter_btn.clicked.connect(lambda: self.show_filters_dialog("closed_units"))
+        graph_layout.addWidget(self.closed_units_filter_btn)
+
+        self.checkout_units_filter_btn = QPushButton("Filters")
+        self.checkout_units_filter_btn.clicked.connect(lambda: self.show_filters_dialog("check_out_units"))
+        check_out_layout.addWidget(self.checkout_units_filter_btn)
+
+        self.setLayout(main_layout)
+
+
+    def get_data_from_database(self):
+        adjusted_end_date = self.end_date + timedelta(days=1)
+        raw_data = self.db.select_closed_orders_by_agent(self.start_date, adjusted_end_date, self.selected_agent)
+
+        if raw_data:
+            data_dict = {}
+            for row in raw_data:
+                completion_date = row[0].split(' ')[0]  # Extract only the date part
+                agent_name = row[1]
+
+                if agent_name not in data_dict:
+                    data_dict[agent_name] = {}
+
+                if completion_date not in data_dict[agent_name]:
+                    data_dict[agent_name][completion_date] = 1
+                else:
+                    data_dict[agent_name][completion_date] += 1
+
+            self.closed_units_data = data_dict
+
+        self.get_check_out_data_from_database()
+
+    def get_check_out_data_from_database(self):
+        adjusted_end_date = self.end_date + timedelta(days=1)
+        raw_data_check_out = self.db.select_checkout_orders_by_agent(self.start_date, adjusted_end_date,
+                                                                     self.selected_agent)
+
+        if raw_data_check_out:
+            data_dict_check_out = {}
+            for row in raw_data_check_out:
+                completion_date = row[0].split(' ')[0]  # Extract only the date part
+                agent_name = row[1]
+
+                if agent_name not in data_dict_check_out:
+                    data_dict_check_out[agent_name] = {}
+
+                if completion_date not in data_dict_check_out[agent_name]:
+                    data_dict_check_out[agent_name][completion_date] = 1
+                else:
+                    data_dict_check_out[agent_name][completion_date] += 1
+            self.check_out_data = data_dict_check_out
+
+    def create_chart(self, data, name):
         chart = QChart()
 
-        series = QBarSeries()
-        for agent_name, closed_units in data.items():
+        series = QStackedBarSeries()
+        unique_dates = sorted(list(set([date for agent_data in data.values() for date in agent_data.keys()])))
+
+        # Prepare the data for the chart
+        chart_data = {}
+        for agent_name, dates_data in data.items():
+            for date in unique_dates:
+                if date not in chart_data:
+                    chart_data[date] = {}
+                chart_data[date][agent_name] = dates_data.get(date, 0)
+
+        # Create the chart with different colors for each agent
+        color_idx = 0
+        colors = [Qt.GlobalColor.red, Qt.GlobalColor.green, Qt.GlobalColor.blue, Qt.GlobalColor.yellow,
+                  Qt.GlobalColor.cyan, Qt.GlobalColor.magenta, Qt.GlobalColor.gray]
+
+        for agent_name in data.keys():
             bar_set = QBarSet(agent_name)
-            bar_set << closed_units
+            bar_set.setColor(colors[color_idx % len(colors)])
+            color_idx += 1
+
+            for date in unique_dates:
+                closed_units = chart_data[date].get(agent_name, 0)
+                bar_set << closed_units
+
             series.append(bar_set)
 
         chart.addSeries(series)
 
-        categories = [key for key in data.keys()]
         axis_x = QBarCategoryAxis()
-        axis_x.append(categories)
+        axis_x.append(unique_dates)
         chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
         series.attachAxis(axis_x)
 
         axis_y = QValueAxis()
+        axis_y.setTickType(QValueAxis.TickType.TicksDynamic)
+        axis_y.setTickInterval(1)
+
         chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
         series.attachAxis(axis_y)
 
-        chart.setTitle("Closed Units")
+        chart.setTitle(name)
         chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
 
         return chart
 
-    def get_data_from_database(self):
-        # Replace this with your database function
-        data = self.db.select_closed_orders_by_agent(self.start_date, self.end_date, self.selected_agent)
-        print(data)
-
-    def show_filters_dialog(self):
-        filters_dialog = FiltersDialog(self)
+    def show_filters_dialog(self, graph_type):
+        filters_dialog = FiltersDialog()
         if filters_dialog.exec() == QDialog.DialogCode.Accepted:
             self.start_date, self.end_date, self.selected_agent = filters_dialog.get_filters()
+            self.update_date_range_label(graph_type)
+
+
+    def update_date_range_label(self, graph_type):
+        start_date_str = self.start_date.toString("yyyy-MM-dd")
+        end_date_str = self.end_date.toString("yyyy-MM-dd")
+        if graph_type == "closed_units":
+            self.graph_group_box.setTitle(f"Closed Units | Date range: {start_date_str} - {end_date_str} | Agent: {self.selected_agent}")
+        elif graph_type == "check_out_units":
+            self.check_out_group_box.setTitle(f"Check Out Units | Date range: {start_date_str} - {end_date_str} | Agent: {self.selected_agent}")
+
 
 
 class FiltersDialog(QDialog):

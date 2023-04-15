@@ -111,12 +111,27 @@ class ServiceOrderDB:
         self.execute(sql_command, parameters=parameters, commit=True)
 
     def select_closed_orders_by_agent(self, start_date, end_date, agent=None):
-        if agent == None and agent != "ALL":
+        if agent is not None and agent != "ALL":
             agent_command = f'AND ClosedBy="{agent}"'
-
-        sql = f"SELECT CompletionDate, ClosedBy as closed_units FROM ServiceOrders WHERE 1 {agent_command}"
-
+        else:
+            agent_command = ""
+        sql = f"""SELECT CompletionDate, ClosedBy as closed_units
+                  FROM ServiceOrders
+                  WHERE CompletionDate BETWEEN ? AND ? {agent_command}"""
+        print(sql)
         return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
+
+    def select_checkout_orders_by_agent(self, start_date, end_date, agent=None):
+        if agent is not None and agent != "ALL":
+            agent_command = f'AND ClosedBy="{agent}"'
+        else:
+            agent_command = ""
+        sql = f"""SELECT CompletionDate, CheckOutBy as closed_units
+                  FROM ServiceOrders
+                  WHERE CompletionDate BETWEEN ? AND ? {agent_command}"""
+        print(sql)
+        return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
+
 
     # Selects all service orders that are not checked out
     def select_service_order(self, so):

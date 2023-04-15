@@ -16,6 +16,10 @@
       "1": {
         "Weekly": 0,
         "Monthly": 0
+      },
+      "DDP": {
+        "Weekly": 36,
+        "Monthly": 120
       }
     },
     "CA": {
@@ -29,6 +33,10 @@
       },
       "HH": {
         "Weekly": 38,
+        "Monthly": 120
+      },
+      "AS": {
+        "Weekly": 20,
         "Monthly": 120
       }
     }

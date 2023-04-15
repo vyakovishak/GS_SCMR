@@ -120,7 +120,7 @@ class MainWin(QMainWindow):
         main_layout.addLayout(input_buttons_layout)
 
     def show_stats_dialog(self):
-        stats_dialog = StatsDialog(self, self.db)
+        stats_dialog = StatsDialog(self.db)
         stats_dialog.exec_()
 
     def open_qr_code_generator(self):
