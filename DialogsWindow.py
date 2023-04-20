@@ -1,13 +1,17 @@
 # DialogsWindow.py
+import pandas as pd
 from typing import Any
 from functools import partial
 from datetime import date, timedelta
+from datetime import datetime
+
 import np
 import pyqtgraph as pg
-from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView
+from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView, QLineSeries, \
+    QDateTimeAxis
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QTableWidget, QCheckBox, QComboBox
-from PySide6.QtCore import Qt, QDir, QByteArray
+from PySide6.QtCore import Qt, QDir, QByteArray, QDateTime, QPointF
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
 from PySide6.QtPrintSupport import QPrinter
@@ -60,7 +64,7 @@ class StatsDialog(QDialog):
         super().__init__()
         self.db = db
         self.setWindowTitle("Stats")
-        self.setFixedSize(800, 600)
+        self.resize(800, 600)
         self.closed_units_data = {}
         self.check_out_data = {}
 
@@ -80,7 +84,7 @@ class StatsDialog(QDialog):
 
         # Use your database function to get the data
         self.get_data_from_database()
-        self.chart = self.create_chart(self.closed_units_data, "Closed Units")
+        self.chart = self.generate_chart(self.closed_units_data, "Closed Units", "Date", "Closed Units")
 
         self.chart_view = QChartView(self.chart)
         self.chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -92,7 +96,7 @@ class StatsDialog(QDialog):
         self.check_out_group_box = QGroupBox("Check Out By")
         check_out_layout = QVBoxLayout()
 
-        self.check_out_chart = self.create_chart(self.check_out_data, "Check Out Units")
+        self.check_out_chart = self.generate_chart(self.check_out_data, "Check Out Units", "Date", "Check Out Units")
 
         check_out_chart_view = QChartView(self.check_out_chart)
         check_out_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
@@ -102,6 +106,19 @@ class StatsDialog(QDialog):
 
         layout.addWidget(self.graph_group_box)
         layout.addWidget(self.check_out_group_box)
+
+        self.utilization_group_box = QGroupBox("Utilization")
+        utilization_layout = QVBoxLayout()
+        self.utilization_data = self.get_utilization_data()
+        self.utilization_chart = self.generate_chart(self.utilization_data, "Utilization", "Date", "Utilization",
+                                                     chart_type="line")
+
+        self.utilization_chart_view = QChartView(self.utilization_chart)
+        self.utilization_chart_view.setRenderHint(QPainter.RenderHint.Antialiasing)
+        utilization_layout.addWidget(self.utilization_chart_view)
+        self.utilization_group_box.setLayout(utilization_layout)
+        layout.addWidget(self.utilization_group_box)  # This line is moved outside the if statement
+
         main_layout.addLayout(layout)
 
         self.closed_units_filter_btn = QPushButton("Filters")
@@ -114,6 +131,34 @@ class StatsDialog(QDialog):
 
         self.setLayout(main_layout)
 
+    def get_utilization_data(self):
+        adjusted_end_date = self.end_date + timedelta(days=1)
+        raw_data = self.db.select_closed_orders_by_agent(self.start_date, adjusted_end_date, self.selected_agent)
+        agent_weekly_hours = dict(load_agents(agent_names_only=False))
+        utilization_data = {}
+
+        if raw_data:
+            for row in raw_data:
+                completion_date = row[0].split(' ')[0]  # Extract only the date part
+                agent_name = row[1]
+                bop_time_minutes = row[2]
+
+                if agent_name not in utilization_data:
+                    utilization_data[agent_name] = {}
+
+                if completion_date not in utilization_data[agent_name]:
+                    utilization_data[agent_name][completion_date] = bop_time_minutes
+                else:
+                    utilization_data[agent_name][completion_date] += bop_time_minutes
+
+                # Calculate utilization percentage
+                weekly_hours = agent_weekly_hours.get(agent_name, 0)
+                if weekly_hours > 0:
+                    bop_time_hours = utilization_data[agent_name][completion_date] / 60
+                    utilization_percentage = (bop_time_hours / weekly_hours) * 100
+                    utilization_data[agent_name][completion_date] = utilization_percentage
+
+        return utilization_data
 
     def get_data_from_database(self):
         adjusted_end_date = self.end_date + timedelta(days=1)
@@ -141,7 +186,6 @@ class StatsDialog(QDialog):
         adjusted_end_date = self.end_date + timedelta(days=1)
         raw_data_check_out = self.db.select_checkout_orders_by_agent(self.start_date, adjusted_end_date,
                                                                      self.selected_agent)
-
         if raw_data_check_out:
             data_dict_check_out = {}
             for row in raw_data_check_out:
@@ -157,52 +201,53 @@ class StatsDialog(QDialog):
                     data_dict_check_out[agent_name][completion_date] += 1
             self.check_out_data = data_dict_check_out
 
-    def create_chart(self, data, name):
+    @staticmethod
+    def generate_chart(data, title, x_name, y_name, chart_type="bar"):
         chart = QChart()
+        chart.setTitle(title)
 
-        series = QStackedBarSeries()
-        unique_dates = sorted(list(set([date for agent_data in data.values() for date in agent_data.keys()])))
+        if not data:
+            return chart
 
-        # Prepare the data for the chart
-        chart_data = {}
-        for agent_name, dates_data in data.items():
-            for date in unique_dates:
-                if date not in chart_data:
-                    chart_data[date] = {}
-                chart_data[date][agent_name] = dates_data.get(date, 0)
+        df = pd.DataFrame.from_dict(data, orient='index').fillna(0)
+        print(f"DataFrame: {df}")  # Debugging line
 
-        # Create the chart with different colors for each agent
-        color_idx = 0
-        colors = [Qt.GlobalColor.red, Qt.GlobalColor.green, Qt.GlobalColor.blue, Qt.GlobalColor.yellow,
-                  Qt.GlobalColor.cyan, Qt.GlobalColor.magenta, Qt.GlobalColor.gray]
-
-        for agent_name in data.keys():
-            bar_set = QBarSet(agent_name)
-            bar_set.setColor(colors[color_idx % len(colors)])
-            color_idx += 1
-
-            for date in unique_dates:
-                closed_units = chart_data[date].get(agent_name, 0)
-                bar_set << closed_units
-
-            series.append(bar_set)
-
-        chart.addSeries(series)
-
-        axis_x = QBarCategoryAxis()
-        axis_x.append(unique_dates)
-        chart.addAxis(axis_x, Qt.AlignmentFlag.AlignBottom)
-        series.attachAxis(axis_x)
+        axis_x = QDateTimeAxis()
+        axis_x.setFormat("yyyy-MM-dd")
+        axis_x.setTitleText(x_name)
 
         axis_y = QValueAxis()
-        axis_y.setTickType(QValueAxis.TickType.TicksDynamic)
-        axis_y.setTickInterval(1)
+        axis_y.setTitleText(y_name)
 
-        chart.addAxis(axis_y, Qt.AlignmentFlag.AlignLeft)
-        series.attachAxis(axis_y)
+        min_date = QDateTime.fromString(df.columns.min(), "yyyy-MM-dd")
+        max_date = QDateTime.fromString(df.columns.max(), "yyyy-MM-dd")
+        axis_x.setRange(min_date, max_date)
 
-        chart.setTitle(name)
-        chart.setAnimationOptions(QChart.AnimationOption.SeriesAnimations)
+        if chart_type == "bar":
+            series = QBarSeries()
+
+            for index, row in df.iterrows():
+                bar_set = QBarSet(index)
+                for value in row:
+                    bar_set.append(value)
+                series.append(bar_set)
+
+            chart.addSeries(series)
+            chart.setAxisX(axis_x, series)
+            chart.setAxisY(axis_y, series)
+        elif chart_type == "line":
+            for index, row in df.iterrows():
+                line_series = QLineSeries()
+                line_series.setName(index)
+                for date, value in row.items():
+                    qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
+                    line_series.append(qt_date.toMSecsSinceEpoch(), value)
+                chart.addSeries(line_series)
+                chart.setAxisX(axis_x, line_series)
+                chart.setAxisY(axis_y, line_series)
+
+        chart.legend().setVisible(True)
+        chart.legend().setAlignment(Qt.AlignBottom)
 
         return chart
 
@@ -212,22 +257,22 @@ class StatsDialog(QDialog):
             self.start_date, self.end_date, self.selected_agent = filters_dialog.get_filters()
             self.update_date_range_label(graph_type)
 
-
     def update_date_range_label(self, graph_type):
         start_date_str = self.start_date.toString("yyyy-MM-dd")
         end_date_str = self.end_date.toString("yyyy-MM-dd")
         if graph_type == "closed_units":
-            self.graph_group_box.setTitle(f"Closed Units | Date range: {start_date_str} - {end_date_str} | Agent: {self.selected_agent}")
+            self.graph_group_box.setTitle(
+                f"Closed Units | Date range: {start_date_str} - {end_date_str} | Agent: {self.selected_agent}")
         elif graph_type == "check_out_units":
-            self.check_out_group_box.setTitle(f"Check Out Units | Date range: {start_date_str} - {end_date_str} | Agent: {self.selected_agent}")
-
+            self.check_out_group_box.setTitle(
+                f"Check Out Units | Date range: {start_date_str} - {end_date_str} | Agent: {self.selected_agent}")
 
 
 class FiltersDialog(QDialog):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("Filters")
-        self.setFixedSize(600, 400)
+        self.resize(700, 400)
 
         layout = QVBoxLayout()
 
@@ -1084,7 +1129,8 @@ class RescanOrdersDialog(QDialog):
 
             # If the service order is in the database and not checked out
             if existing_service_order:
-                if existing_service_order[0][-2] == "NO":
+                print(existing_service_order[0][-6] )
+                if existing_service_order[0][-6] == "NO":
                     # Display the location dialog
                     location_dialog = LocationDialog(self.db, existing_service_order[0][1])
                     if location_dialog.exec_():

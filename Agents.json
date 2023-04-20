@@ -13,10 +13,6 @@
         "Weekly": 0,
         "Monthly": 0
       },
-      "1": {
-        "Weekly": 0,
-        "Monthly": 0
-      },
       "DDP": {
         "Weekly": 36,
         "Monthly": 120
@@ -37,6 +33,10 @@
       },
       "AS": {
         "Weekly": 20,
+        "Monthly": 120
+      },
+      "tamari": {
+        "Weekly": 30,
         "Monthly": 120
       }
     }

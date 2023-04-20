@@ -28,7 +28,7 @@ class ServiceOrderDB:
             parameters = tuple()
         connection = self.connection
         cursor = connection.cursor()
-        connection.set_trace_callback(logger)
+        #connection.set_trace_callback(logger)
         cursor.execute(sql, parameters)
 
         data = None
@@ -115,10 +115,10 @@ class ServiceOrderDB:
             agent_command = f'AND ClosedBy="{agent}"'
         else:
             agent_command = ""
-        sql = f"""SELECT CompletionDate, ClosedBy as closed_units
+        sql = f"""SELECT CompletionDate, ClosedBy, BOPTime as closed_units
                   FROM ServiceOrders
                   WHERE CompletionDate BETWEEN ? AND ? {agent_command}"""
-        print(sql)
+
         return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
 
     def select_checkout_orders_by_agent(self, start_date, end_date, agent=None):
@@ -128,10 +128,9 @@ class ServiceOrderDB:
             agent_command = ""
         sql = f"""SELECT CompletionDate, CheckOutBy as closed_units
                   FROM ServiceOrders
-                  WHERE CompletionDate BETWEEN ? AND ? {agent_command}"""
-        print(sql)
-        return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
+                  WHERE CompletionDate BETWEEN ? AND ? {agent_command} AND CheckedOut="YES" """
 
+        return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
 
     # Selects all service orders that are not checked out
     def select_service_order(self, so):
@@ -391,10 +390,3 @@ class ServiceOrderDB:
         return sql_command, tuple(parameters.values())
 
 
-def logger(statement):
-    print(f"""
-------------------------------------
-Executing:
-{statement}
-------------------------------------
-""")
