@@ -117,7 +117,7 @@ class ServiceOrderDB:
             agent_command = ""
         sql = f"""SELECT CompletionDate, ClosedBy, BOPTime as closed_units
                   FROM ServiceOrders
-                  WHERE CompletionDate BETWEEN ? AND ? {agent_command}"""
+                  WHERE CompletionDate BETWEEN ? AND ? {agent_command} AND CFI= "NO" """
 
         return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
 
@@ -128,7 +128,7 @@ class ServiceOrderDB:
             agent_command = ""
         sql = f"""SELECT CompletionDate, CheckOutBy as closed_units
                   FROM ServiceOrders
-                  WHERE CompletionDate BETWEEN ? AND ? {agent_command} AND CheckedOut="YES" """
+                  WHERE CompletionDate BETWEEN ? AND ? {agent_command} AND CheckedOut="YES" AND CFI="NO" """
 
         return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
 

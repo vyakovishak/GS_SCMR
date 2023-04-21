@@ -1,0 +1,396 @@
+{
+    "12345678912345": [
+        {
+            "timestamp": "2023-04-20 02:15:59",
+            "operation": "Add Service Order",
+            "operator": "JMM",
+            "changes": {
+                "ServiceOrder": {
+                    "before": null,
+                    "after": "12345678912345"
+                },
+                "Location": {
+                    "before": null,
+                    "after": "D1"
+                },
+                "CompletionDate": {
+                    "before": null,
+                    "after": "2023-04-20 02:15:59"
+                },
+                "ClosedBy": {
+                    "before": null,
+                    "after": "JMM"
+                },
+                "Status": {
+                    "before": null,
+                    "after": "GREEN"
+                },
+                "Comments": {
+                    "before": null,
+                    "after": ""
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-20 02:16:14",
+            "operation": "Updated Location",
+            "operator": "JMM",
+            "changes": {
+                "ResCodes": {
+                    "before": {
+                        "Code": [
+                            [
+                                "None"
+                            ]
+                        ],
+                        "BOB_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "FOP_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "Total_time": [
+                            [
+                                0
+                            ]
+                        ]
+                    },
+                    "after": {
+                        "Code": [
+                            "ABAT",
+                            "AREC",
+                            "ACAM",
+                            "ARDO"
+                        ],
+                        "BOB_time": 95,
+                        "FOP_time": 75,
+                        "Total_time": 170
+                    }
+                }
+            }
+        }
+    ],
+    "12345678912341": [
+        {
+            "timestamp": "2023-04-20 02:16:32",
+            "operation": "Add Service Order",
+            "operator": "MM",
+            "changes": {
+                "ServiceOrder": {
+                    "before": null,
+                    "after": "12345678912341"
+                },
+                "Location": {
+                    "before": null,
+                    "after": "D2"
+                },
+                "CompletionDate": {
+                    "before": null,
+                    "after": "2023-04-20 02:16:32"
+                },
+                "ClosedBy": {
+                    "before": null,
+                    "after": "MM"
+                },
+                "Status": {
+                    "before": null,
+                    "after": "GREEN"
+                },
+                "Comments": {
+                    "before": null,
+                    "after": ""
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-20 02:16:41",
+            "operation": "Updated Location",
+            "operator": "MM",
+            "changes": {
+                "ResCodes": {
+                    "before": {
+                        "Code": [
+                            [
+                                "None"
+                            ]
+                        ],
+                        "BOB_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "FOP_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "Total_time": [
+                            [
+                                0
+                            ]
+                        ]
+                    },
+                    "after": {
+                        "Code": [
+                            "SBAT",
+                            "SRDO"
+                        ],
+                        "BOB_time": 107,
+                        "FOP_time": 25,
+                        "Total_time": 132
+                    }
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-20 06:01:25",
+            "operation": "Rescan",
+            "operator": "JMM",
+            "changes": {
+                "Location": {
+                    "before": "D2",
+                    "after": "D2"
+                },
+                "UpdatedBy": {
+                    "before": "",
+                    "after": "JMM"
+                }
+            }
+        }
+    ],
+    "12345678912340": [
+        {
+            "timestamp": "2023-04-20 02:16:55",
+            "operation": "Add Service Order",
+            "operator": "DDP",
+            "changes": {
+                "ServiceOrder": {
+                    "before": null,
+                    "after": "12345678912340"
+                },
+                "Location": {
+                    "before": null,
+                    "after": "D3"
+                },
+                "CompletionDate": {
+                    "before": null,
+                    "after": "2023-04-20 02:16:55"
+                },
+                "ClosedBy": {
+                    "before": null,
+                    "after": "DDP"
+                },
+                "Status": {
+                    "before": null,
+                    "after": "GREEN"
+                },
+                "Comments": {
+                    "before": null,
+                    "after": ""
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-20 04:21:39",
+            "operation": "Checkout",
+            "operator": "JMM",
+            "changes": {
+                "CheckedOut": {
+                    "before": "NO",
+                    "after": "YES"
+                },
+                "CheckoutDate": {
+                    "before": "",
+                    "after": "2023-04-20 04:21:39"
+                },
+                "CheckOutBy": {
+                    "before": "",
+                    "after": "JMM"
+                }
+            }
+        }
+    ],
+    "12345678912347": [
+        {
+            "timestamp": "2023-04-20 02:17:10",
+            "operation": "Add Service Order",
+            "operator": "DICK",
+            "changes": {
+                "ServiceOrder": {
+                    "before": null,
+                    "after": "12345678912347"
+                },
+                "Location": {
+                    "before": null,
+                    "after": "D3"
+                },
+                "CompletionDate": {
+                    "before": null,
+                    "after": "2023-04-20 02:17:10"
+                },
+                "ClosedBy": {
+                    "before": null,
+                    "after": "DICK"
+                },
+                "Status": {
+                    "before": null,
+                    "after": "GREEN"
+                },
+                "Comments": {
+                    "before": null,
+                    "after": ""
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-20 02:17:19",
+            "operation": "Updated Location",
+            "operator": "DICK",
+            "changes": {
+                "ResCodes": {
+                    "before": {
+                        "Code": [
+                            [
+                                "None"
+                            ]
+                        ],
+                        "BOB_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "FOP_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "Total_time": [
+                            [
+                                0
+                            ]
+                        ]
+                    },
+                    "after": {
+                        "Code": [
+                            "GSHW"
+                        ],
+                        "BOB_time": 18,
+                        "FOP_time": 34,
+                        "Total_time": 52
+                    }
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-20 04:21:27",
+            "operation": "Checkout",
+            "operator": "MM",
+            "changes": {
+                "CheckedOut": {
+                    "before": "NO",
+                    "after": "YES"
+                },
+                "CheckoutDate": {
+                    "before": "",
+                    "after": "2023-04-20 04:21:27"
+                },
+                "CheckOutBy": {
+                    "before": "",
+                    "after": "MM"
+                }
+            }
+        }
+    ],
+    "65465465545644": [
+        {
+            "timestamp": "2023-04-21 04:04:44",
+            "operation": "Add Service Order",
+            "operator": "JMM",
+            "changes": {
+                "ServiceOrder": {
+                    "before": null,
+                    "after": "65465465545644"
+                },
+                "Location": {
+                    "before": null,
+                    "after": "L1"
+                },
+                "CompletionDate": {
+                    "before": null,
+                    "after": "2023-04-21 04:04:44"
+                },
+                "ClosedBy": {
+                    "before": null,
+                    "after": "JMM"
+                },
+                "Status": {
+                    "before": null,
+                    "after": "GREEN"
+                },
+                "Comments": {
+                    "before": null,
+                    "after": ""
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-21 04:04:52",
+            "operation": "Updated Location",
+            "operator": "JMM",
+            "changes": {
+                "ResCodes": {
+                    "before": {
+                        "Code": [
+                            [
+                                "None"
+                            ]
+                        ],
+                        "BOB_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "FOP_time": [
+                            [
+                                0
+                            ]
+                        ],
+                        "Total_time": [
+                            [
+                                0
+                            ]
+                        ]
+                    },
+                    "after": {
+                        "Code": [
+                            "AFAL",
+                            "ARDO"
+                        ],
+                        "BOB_time": 40,
+                        "FOP_time": 0,
+                        "Total_time": 40
+                    }
+                }
+            }
+        },
+        {
+            "timestamp": "2023-04-21 04:09:10",
+            "operation": "Delete Service Order",
+            "operator": "tamari",
+            "changes": {
+                "CFI": {
+                    "before": [
+                        [
+                            "NO"
+                        ]
+                    ],
+                    "after": "YES"
+                }
+            }
+        }
+    ]
+}

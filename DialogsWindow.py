@@ -4,14 +4,14 @@ from typing import Any
 from functools import partial
 from datetime import date, timedelta
 from datetime import datetime
-
+#1.1.1
 import np
 import pyqtgraph as pg
 from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView, QLineSeries, \
     QDateTimeAxis
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QLabel, QLineEdit, QPushButton, QGridLayout, QButtonGroup, \
     QMessageBox, QTableWidget, QCheckBox, QComboBox
-from PySide6.QtCore import Qt, QDir, QByteArray, QDateTime, QPointF
+from PySide6.QtCore import Qt, QDir, QByteArray, QDateTime, QPointF, QDate, QTime
 from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
 from PySide6.QtPrintSupport import QPrinter
@@ -110,6 +110,10 @@ class StatsDialog(QDialog):
         self.utilization_group_box = QGroupBox("Utilization")
         utilization_layout = QVBoxLayout()
         self.utilization_data = self.get_utilization_data()
+        #self.utilization_data = self.get_dummy_data()
+
+        print(f"Utilization Data: {self.utilization_data}")
+
         self.utilization_chart = self.generate_chart(self.utilization_data, "Utilization", "Date", "Utilization",
                                                      chart_type="line")
 
@@ -139,7 +143,8 @@ class StatsDialog(QDialog):
 
         if raw_data:
             for row in raw_data:
-                completion_date = row[0].split(' ')[0]  # Extract only the date part
+                completion_date_str = row[0].split(' ')[0]  # Extract only the date part
+                completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d')
                 agent_name = row[1]
                 bop_time_minutes = row[2]
 
@@ -158,6 +163,10 @@ class StatsDialog(QDialog):
                     utilization_percentage = (bop_time_hours / weekly_hours) * 100
                     utilization_data[agent_name][completion_date] = utilization_percentage
 
+        # Convert datetime objects back to string format for compatibility with the generate_chart function
+        utilization_data = {agent: {date.strftime('%Y-%m-%d'): value for date, value in date_values.items()} for
+                            agent, date_values in
+                            utilization_data.items()}
         return utilization_data
 
     def get_data_from_database(self):
@@ -202,15 +211,9 @@ class StatsDialog(QDialog):
             self.check_out_data = data_dict_check_out
 
     @staticmethod
-    def generate_chart(data, title, x_name, y_name, chart_type="bar"):
+    def generate_bar_chart(data, title, x_name, y_name):
         chart = QChart()
         chart.setTitle(title)
-
-        if not data:
-            return chart
-
-        df = pd.DataFrame.from_dict(data, orient='index').fillna(0)
-        print(f"DataFrame: {df}")  # Debugging line
 
         axis_x = QDateTimeAxis()
         axis_x.setFormat("yyyy-MM-dd")
@@ -219,37 +222,101 @@ class StatsDialog(QDialog):
         axis_y = QValueAxis()
         axis_y.setTitleText(y_name)
 
-        min_date = QDateTime.fromString(df.columns.min(), "yyyy-MM-dd")
-        max_date = QDateTime.fromString(df.columns.max(), "yyyy-MM-dd")
-        axis_x.setRange(min_date, max_date)
+        series = QBarSeries()
 
-        if chart_type == "bar":
-            series = QBarSeries()
+        for index, row in data.iterrows():
+            bar_set = QBarSet(index)
+            for value in row:
+                bar_set.append(value)
+            series.append(bar_set)
 
-            for index, row in df.iterrows():
-                bar_set = QBarSet(index)
-                for value in row:
-                    bar_set.append(value)
-                series.append(bar_set)
-
-            chart.addSeries(series)
-            chart.setAxisX(axis_x, series)
-            chart.setAxisY(axis_y, series)
-        elif chart_type == "line":
-            for index, row in df.iterrows():
-                line_series = QLineSeries()
-                line_series.setName(index)
-                for date, value in row.items():
-                    qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
-                    line_series.append(qt_date.toMSecsSinceEpoch(), value)
-                chart.addSeries(line_series)
-                chart.setAxisX(axis_x, line_series)
-                chart.setAxisY(axis_y, line_series)
+        chart.addSeries(series)
+        chart.setAxisX(axis_x, series)
+        chart.setAxisY(axis_y, series)
 
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
 
         return chart
+
+    def get_dummy_data(self):
+        return {
+            'JMM': {
+                '2023-04-20': 95,
+                '2023-04-21': 80,
+                '2023-04-22': 70,
+            },
+            'MM': {
+                '2023-04-20': 107,
+                '2023-04-21': 90,
+                '2023-04-22': 60,
+            },
+            'DDP': {
+                '2023-04-20': 0,
+                '2023-04-21': 20,
+                '2023-04-22': 40,
+            },
+            'DICK': {
+                '2023-04-20': 18,
+                '2023-04-21': 30,
+                '2023-04-22': 50,
+            }
+        }
+
+    @staticmethod
+    def generate_line_chart(data, title, x_name, y_name):
+        chart = QChart()
+        chart.setTitle(title)
+
+        axis_x = QDateTimeAxis()
+        axis_x.setFormat("yyyy-MM-dd")
+        axis_x.setTitleText(x_name)
+
+        axis_y = QValueAxis()
+        axis_y.setRange(0, 120)  # Adjust the range values as needed
+        axis_y.setTitleText(y_name)
+
+        for index, row in data.iterrows():
+            line_series = QLineSeries()
+            line_series.setName(index)
+            data_points = 0
+            for date, value in row.items():
+                qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
+                print(f"Appending point: {qt_date}, {value}")  # Debugging line
+                line_series.append(qt_date.toMSecsSinceEpoch(), value)
+                data_points += 1
+
+            # Duplicate the single data point if there's only one
+            if data_points == 1:
+                last_point = line_series.at(0)
+                new_date = QDateTime.fromMSecsSinceEpoch(int(last_point.x()) + 86400000)   # Add one day (in milliseconds)
+                line_series.append(new_date.toMSecsSinceEpoch(), last_point.y())
+
+            chart.addSeries(line_series)
+            chart.setAxisX(axis_x, line_series)
+            chart.setAxisY(axis_y, line_series)
+
+        chart.legend().setVisible(True)
+        chart.legend().setAlignment(Qt.AlignBottom)
+
+        return chart
+
+
+    @staticmethod
+    def generate_chart(data, title, x_name, y_name, chart_type="bar"):
+        if not data:
+            return QChart()
+
+        df = pd.DataFrame.from_dict(data, orient='index').fillna(0)
+
+        min_date = QDateTime(QDate.fromString(df.columns.min(), "yyyy-MM-dd"), QTime(0, 0))
+        max_date = QDateTime(QDate.fromString(df.columns.max(), "yyyy-MM-dd"), QTime(0, 0))
+
+        if chart_type == "bar":
+            return StatsDialog.generate_bar_chart(df, title, x_name, y_name)
+        elif chart_type == "line":
+
+            return StatsDialog.generate_line_chart(df, title, x_name, y_name)
 
     def show_filters_dialog(self, graph_type):
         filters_dialog = FiltersDialog()
