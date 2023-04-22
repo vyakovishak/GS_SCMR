@@ -1,42 +1,30 @@
 {
   "Agents": {
     "ARA": {
-      "JMM": {
-        "Weekly": 123,
-        "Monthly": 0
-      },
-      "MM": {
-        "Weekly": 213123,
-        "Monthly": 0
-      },
-      "gg": {
-        "Weekly": 0,
-        "Monthly": 0
-      },
-      "DDP": {
-        "Weekly": 36,
+      "DPP": {
+        "Weekly": 37,
         "Monthly": 120
+      },
+      "JH": {
+        "Weekly": 39,
+        "Monthly": 130
+      },
+      "TC": {
+        "Weekly": 38,
+        "Monthly": 125
       }
     },
     "CA": {
-      "DICK": {
-        "Weekly": 23,
-        "Monthly": 0
-      },
-      "asd": {
-        "Weekly": 22,
-        "Monthly": 440
-      },
-      "HH": {
+      "VY": {
         "Weekly": 38,
-        "Monthly": 120
+        "Monthly": 125
       },
-      "AS": {
-        "Weekly": 20,
-        "Monthly": 120
+      "UB": {
+        "Weekly": 36,
+        "Monthly": 125
       },
-      "tamari": {
-        "Weekly": 30,
+      "MA": {
+        "Weekly": 35,
         "Monthly": 120
       }
     }

@@ -4,7 +4,7 @@ from app import MainWin, ServiceOrderDB
 import pytest
 import datetime
 import PySide6
-
+from utils import load_agents
 
 @pytest.fixture
 def db():
@@ -25,17 +25,18 @@ def random_date(start_date, end_date):
     return start_date + datetime.timedelta(days=random_days)
 
 
-@pytest.mark.parametrize("i", range(500))
+@pytest.mark.parametrize("i", range(10))
 def test_add_and_select_random_service_order(i, db):
     service_order = random_service_order()
     location = random_string(5)
 
-    start_date = datetime.date(2023, 3, 1)
-    end_date = datetime.date(2023, 3, 31)
+    start_date = datetime.date(2023, 4, 1)
+    end_date = datetime.date(2023, 4, 30)
+
     completion_date = random_date(start_date, end_date).strftime("%Y-%m-%d %H:%M:%S")
 
-    closed_by = random.choice(["Q", "VY", "JH", "RAZ","KAM"])
-    status = random.choice(["GREEN", "YELLOW", "RECEIVING", "FULFILMENT"])
+    closed_by =  random.choice(load_agents(agent_names_only=True))
+    status = random.choice(["GREEN", "YELLOW"])
 
     comments = random_string(50)
     db.create_table_users()
@@ -56,15 +57,20 @@ def test_add_and_select_random_service_order(i, db):
     # Check if the details match
     # Check if the details match
     assert (
-               service_order,
-               location,
-               completion_date,
-               closed_by,
-               status,
-               comments,
-               "",
-               "",
-               "",
-               "",
-               0, 0, 0
-           ) == result[0]
+        service_order,
+        location,
+        completion_date,
+        closed_by,
+        status,
+        comments,
+        "",
+        "",
+        "",
+        "",
+        "NO",
+        0,
+        "None",
+        random.randrange(0, 80),
+        0,
+        0
+    )

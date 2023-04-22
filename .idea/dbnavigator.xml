@@ -29,9 +29,7 @@
   </component>
   <component name="DBNavigator.Project.DatabaseConsoleManager">
     <connection id="f6f37656-0706-4302-b364-396503e804a8">
-      <console name="Connection" type="STANDARD" schema="main" session="Main"><![CDATA[SELECT CompletionDate, CheckOutBy as closed_units
-                  FROM ServiceOrders
-                  WHERE CompletionDate BETWEEN '2023-03-16' AND '2023-04-16']]></console>
+      <console name="Connection" type="STANDARD" schema="main" session="Main"><![CDATA[SELECT * from "ServiceOrders"]]></console>
     </connection>
   </component>
   <component name="DBNavigator.Project.DatabaseEditorStateManager">

@@ -83,7 +83,7 @@ class StatsDialog(QDialog):
         graph_layout = QVBoxLayout()
 
         # Use your database function to get the data
-        self.get_data_from_database()
+        self.get_closed_units_data()
         self.chart = self.generate_chart(self.closed_units_data, "Closed Units", "Date", "Closed Units")
 
         self.chart_view = QChartView(self.chart)
@@ -110,6 +110,7 @@ class StatsDialog(QDialog):
         self.utilization_group_box = QGroupBox("Utilization")
         utilization_layout = QVBoxLayout()
         self.utilization_data = self.get_utilization_data()
+
         #self.utilization_data = self.get_dummy_data()
 
         print(f"Utilization Data: {self.utilization_data}")
@@ -138,13 +139,13 @@ class StatsDialog(QDialog):
     def get_utilization_data(self):
         adjusted_end_date = self.end_date + timedelta(days=1)
         raw_data = self.db.select_closed_orders_by_agent(self.start_date, adjusted_end_date, self.selected_agent)
-        agent_weekly_hours = dict(load_agents(agent_names_only=False))
+        agent_weekly_hours = dict(load_agents(hours_type="weekly", agent_names_only=False))
         utilization_data = {}
 
         if raw_data:
             for row in raw_data:
                 completion_date_str = row[0].split(' ')[0]  # Extract only the date part
-                completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d')
+                completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
                 agent_name = row[1]
                 bop_time_minutes = row[2]
 
@@ -155,21 +156,40 @@ class StatsDialog(QDialog):
                     utilization_data[agent_name][completion_date] = bop_time_minutes
                 else:
                     utilization_data[agent_name][completion_date] += bop_time_minutes
+        print("Utilization data after processing raw data:", utilization_data)
+        # Sort the data by date and accumulate time from oldest to newest date
+        sorted_data = {}
+        for agent, date_values in utilization_data.items():
+            sorted_data[agent] = {}
+            sorted_dates = sorted(date_values.keys())
+            accumulated_time = 0
+            for date in sorted_dates:
+                accumulated_time += date_values[date]
+                sorted_data[agent][date] = accumulated_time
 
-                # Calculate utilization percentage
-                weekly_hours = agent_weekly_hours.get(agent_name, 0)
+        print("Sorted and accumulated data:", sorted_data)
+
+        # Calculate utilization percentage
+        utilization_percentage_data = {}
+        for agent, date_values in sorted_data.items():
+            utilization_percentage_data[agent] = {}
+            for date, accumulated_time in date_values.items():
+                weekly_hours = agent_weekly_hours.get(agent, 0)
+                print(f"{agent} name: "+str(agent_weekly_hours.get(agent)))
                 if weekly_hours > 0:
-                    bop_time_hours = utilization_data[agent_name][completion_date] / 60
+                    bop_time_hours = accumulated_time / 60
                     utilization_percentage = (bop_time_hours / weekly_hours) * 100
-                    utilization_data[agent_name][completion_date] = utilization_percentage
+                    utilization_percentage_data[agent][date] = utilization_percentage
 
+        print("Utilization percentage data:", utilization_percentage_data)
         # Convert datetime objects back to string format for compatibility with the generate_chart function
-        utilization_data = {agent: {date.strftime('%Y-%m-%d'): value for date, value in date_values.items()} for
-                            agent, date_values in
-                            utilization_data.items()}
-        return utilization_data
+        utilization_percentage_data = {agent: {date.strftime('%Y-%m-%d'): value for date, value in date_values.items()}
+                                       for
+                                       agent, date_values in
+                                       utilization_percentage_data.items()}
+        return utilization_percentage_data
 
-    def get_data_from_database(self):
+    def get_closed_units_data(self):
         adjusted_end_date = self.end_date + timedelta(days=1)
         raw_data = self.db.select_closed_orders_by_agent(self.start_date, adjusted_end_date, self.selected_agent)
 
@@ -189,9 +209,9 @@ class StatsDialog(QDialog):
 
             self.closed_units_data = data_dict
 
-        self.get_check_out_data_from_database()
+        self.get_checkout_units_data()
 
-    def get_check_out_data_from_database(self):
+    def get_checkout_units_data(self):
         adjusted_end_date = self.end_date + timedelta(days=1)
         raw_data_check_out = self.db.select_checkout_orders_by_agent(self.start_date, adjusted_end_date,
                                                                      self.selected_agent)
@@ -226,13 +246,21 @@ class StatsDialog(QDialog):
 
         for index, row in data.iterrows():
             bar_set = QBarSet(index)
-            for value in row:
+            for date, value in row.items():
+                qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
                 bar_set.append(value)
+
             series.append(bar_set)
 
         chart.addSeries(series)
         chart.setAxisX(axis_x, series)
         chart.setAxisY(axis_y, series)
+
+        # Setting the categories for the x-axis labels
+        categories = [QDateTime.fromString(date_str, "yyyy-MM-dd").toString("yyyy-MM-dd") for date_str in data.columns]
+        bar_categories = QBarCategoryAxis()
+        bar_categories.append(categories)
+        chart.setAxisX(bar_categories, series)
 
         chart.legend().setVisible(True)
         chart.legend().setAlignment(Qt.AlignBottom)
@@ -283,14 +311,16 @@ class StatsDialog(QDialog):
             for date, value in row.items():
                 qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
                 print(f"Appending point: {qt_date}, {value}")  # Debugging line
-                line_series.append(qt_date.toMSecsSinceEpoch(), value)
+                line_series.append(np.int64(qt_date.toMSecsSinceEpoch()), value)
+
                 data_points += 1
 
             # Duplicate the single data point if there's only one
             if data_points == 1:
                 last_point = line_series.at(0)
                 new_date = QDateTime.fromMSecsSinceEpoch(int(last_point.x()) + 86400000)   # Add one day (in milliseconds)
-                line_series.append(new_date.toMSecsSinceEpoch(), last_point.y())
+                line_series.append(np.int64(new_date.toMSecsSinceEpoch()), last_point.y())
+
 
             chart.addSeries(line_series)
             chart.setAxisX(axis_x, line_series)
@@ -301,6 +331,19 @@ class StatsDialog(QDialog):
 
         return chart
 
+    @staticmethod
+    def calculate_cumulative_utilization_data(raw_data):
+        cumulative_data = {}
+
+        for agent, date_values in raw_data.items():
+            cumulative_data[agent] = {}
+            cumulative_sum = 0
+
+            for date, value in date_values.items():
+                cumulative_sum += value
+                cumulative_data[agent][date] = cumulative_sum
+
+        return cumulative_data
 
     @staticmethod
     def generate_chart(data, title, x_name, y_name, chart_type="bar"):
@@ -2157,8 +2200,5 @@ class CommentsDialog(QDialog):
         else:
             self.submit_button.clicked.connect(self.accept)
 
-    def validate_comments(self):
-        if len(self.comments_input.text()) >= 10:
-            self.accept()
-        else:
-            QMessageBox.warning(self, "Warning", "Comments must be at least 10 characters long.")
+
+
