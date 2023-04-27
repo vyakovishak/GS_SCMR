@@ -4,7 +4,7 @@ from typing import Any
 from functools import partial
 from datetime import date, timedelta
 from datetime import datetime
-#1.1.1
+# 1.1.1
 import np
 import pyqtgraph as pg
 from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView, QLineSeries, \
@@ -16,7 +16,7 @@ from PySide6.QtMultimediaWidgets import QVideoWidget
 from PySide6.QtGui import QFont, QPixmap, QImage, QPainter
 from PySide6.QtPrintSupport import QPrinter
 from PySide6.QtCharts import QStackedBarSeries
-
+from collections import defaultdict
 from PySide6.QtWidgets import QDialog, QVBoxLayout, QCalendarWidget, QLabel, QPushButton, QCheckBox, QComboBox, \
     QHBoxLayout, QDialogButtonBox, QTableWidgetItem, QFormLayout, QHeaderView, QGroupBox, QSplitter, QListView, \
     QItemDelegate, QSpinBox, QFileDialog, QScrollArea, QWidget, QApplication, QInputDialog
@@ -111,7 +111,7 @@ class StatsDialog(QDialog):
         utilization_layout = QVBoxLayout()
         self.utilization_data = self.get_utilization_data()
 
-        #self.utilization_data = self.get_dummy_data()
+        # self.utilization_data = self.get_dummy_data()
 
         print(f"Utilization Data: {self.utilization_data}")
 
@@ -143,50 +143,42 @@ class StatsDialog(QDialog):
         utilization_data = {}
 
         if raw_data:
+            # Sort raw_data by date
+            raw_data.sort(key=lambda x: x[0])
+
+            # Process sorted raw_data to accumulate utilization per agent
+            accumulated_data = []
+            accumulated_minutes_per_agent = defaultdict(int)
             for row in raw_data:
                 completion_date_str = row[0].split(' ')[0]  # Extract only the date part
                 completion_date = datetime.datetime.strptime(completion_date_str, '%Y-%m-%d').date()
                 agent_name = row[1]
                 bop_time_minutes = row[2]
 
-                if agent_name not in utilization_data:
-                    utilization_data[agent_name] = {}
+                accumulated_minutes_per_agent[agent_name] += bop_time_minutes
+                accumulated_data.append((completion_date, agent_name, accumulated_minutes_per_agent[agent_name]))
 
-                if completion_date not in utilization_data[agent_name]:
-                    utilization_data[agent_name][completion_date] = bop_time_minutes
-                else:
-                    utilization_data[agent_name][completion_date] += bop_time_minutes
-        print("Utilization data after processing raw data:", utilization_data)
-        # Sort the data by date and accumulate time from oldest to newest date
-        sorted_data = {}
-        for agent, date_values in utilization_data.items():
-            sorted_data[agent] = {}
-            sorted_dates = sorted(date_values.keys())
-            accumulated_time = 0
-            for date in sorted_dates:
-                accumulated_time += date_values[date]
-                sorted_data[agent][date] = accumulated_time
+            print("Accumulated data:", accumulated_data)
 
-        print("Sorted and accumulated data:", sorted_data)
-
-        # Calculate utilization percentage
-        utilization_percentage_data = {}
-        for agent, date_values in sorted_data.items():
-            utilization_percentage_data[agent] = {}
-            for date, accumulated_time in date_values.items():
-                weekly_hours = agent_weekly_hours.get(agent, 0)
-                print(f"{agent} name: "+str(agent_weekly_hours.get(agent)))
-                if weekly_hours > 0:
+            # Calculate utilization percentage
+            utilization_percentage_data = defaultdict(dict)
+            for date, agent_name, accumulated_time in accumulated_data:
+                weekly_hours = agent_weekly_hours.get(agent_name, 0)
+                days_diff = (date - self.start_date).days + 1
+                total_hours = (weekly_hours / 7) * days_diff
+                if total_hours > 0:
                     bop_time_hours = accumulated_time / 60
-                    utilization_percentage = (bop_time_hours / weekly_hours) * 100
-                    utilization_percentage_data[agent][date] = utilization_percentage
+                    utilization_percentage = (bop_time_hours / total_hours) * 100
+                    utilization_percentage = round(utilization_percentage,
+                                                   2)  # Round the percentage to 2 decimal places
+                    utilization_percentage_data[agent_name][date] = utilization_percentage
 
-        print("Utilization percentage data:", utilization_percentage_data)
-        # Convert datetime objects back to string format for compatibility with the generate_chart function
-        utilization_percentage_data = {agent: {date.strftime('%Y-%m-%d'): value for date, value in date_values.items()}
-                                       for
-                                       agent, date_values in
-                                       utilization_percentage_data.items()}
+            print("Utilization percentage data:", dict(utilization_percentage_data))
+            # Convert datetime objects back to string format for compatibility with the generate_chart function
+            utilization_percentage_data = {
+                agent: {date.strftime('%Y-%m-%d'): value for date, value in date_values.items()} for
+                agent, date_values in
+                utilization_percentage_data.items()}
         return utilization_percentage_data
 
     def get_closed_units_data(self):
@@ -236,18 +228,18 @@ class StatsDialog(QDialog):
         chart.setTitle(title)
 
         axis_x = QDateTimeAxis()
-        axis_x.setFormat("yyyy-MM-dd")
+        axis_x.setFormat("MMM dd")
         axis_x.setTitleText(x_name)
 
         axis_y = QValueAxis()
         axis_y.setTitleText(y_name)
+        axis_y.setTickCount(11)
 
         series = QBarSeries()
 
         for index, row in data.iterrows():
             bar_set = QBarSet(index)
             for date, value in row.items():
-                qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
                 bar_set.append(value)
 
             series.append(bar_set)
@@ -297,30 +289,36 @@ class StatsDialog(QDialog):
         chart.setTitle(title)
 
         axis_x = QDateTimeAxis()
-        axis_x.setFormat("yyyy-MM-dd")
+        axis_x.setFormat("MMM dd")
         axis_x.setTitleText(x_name)
 
         axis_y = QValueAxis()
-        axis_y.setRange(0, 120)  # Adjust the range values as needed
+        axis_y.setRange(0, 100)  # Adjust the range values as needed
         axis_y.setTitleText(y_name)
+        axis_y.setTickCount(11)
 
         for index, row in data.iterrows():
             line_series = QLineSeries()
             line_series.setName(index)
             data_points = 0
-            for date, value in row.items():
-                qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
-                print(f"Appending point: {qt_date}, {value}")  # Debugging line
-                line_series.append(np.int64(qt_date.toMSecsSinceEpoch()), value)
 
-                data_points += 1
+            # Sort dates
+            sorted_dates = sorted(row.items(), key=lambda x: x[0])
+
+            for date, value in sorted_dates:
+                if value > 0:  # Only append points with non-zero values
+                    qt_date = QDateTime.fromString(date, "yyyy-MM-dd")
+                    print(f"Appending point: {qt_date}, {value}")  # Debugging line
+                    line_series.append(np.int64(qt_date.toMSecsSinceEpoch()), value)
+
+                    data_points += 1
 
             # Duplicate the single data point if there's only one
             if data_points == 1:
                 last_point = line_series.at(0)
-                new_date = QDateTime.fromMSecsSinceEpoch(int(last_point.x()) + 86400000)   # Add one day (in milliseconds)
+                new_date = QDateTime.fromMSecsSinceEpoch(
+                    int(last_point.x()) + 86400000)  # Add one day (in milliseconds)
                 line_series.append(np.int64(new_date.toMSecsSinceEpoch()), last_point.y())
-
 
             chart.addSeries(line_series)
             chart.setAxisX(axis_x, line_series)
@@ -348,17 +346,11 @@ class StatsDialog(QDialog):
     @staticmethod
     def generate_chart(data, title, x_name, y_name, chart_type="bar"):
         if not data:
-            return QChart()
-
+            return None
         df = pd.DataFrame.from_dict(data, orient='index').fillna(0)
-
-        min_date = QDateTime(QDate.fromString(df.columns.min(), "yyyy-MM-dd"), QTime(0, 0))
-        max_date = QDateTime(QDate.fromString(df.columns.max(), "yyyy-MM-dd"), QTime(0, 0))
-
         if chart_type == "bar":
             return StatsDialog.generate_bar_chart(df, title, x_name, y_name)
         elif chart_type == "line":
-
             return StatsDialog.generate_line_chart(df, title, x_name, y_name)
 
     def show_filters_dialog(self, graph_type):
@@ -574,8 +566,7 @@ class QRCodeGeneratorDialog(QDialog):
 
                 draw.text((10, (img_h - text_h) // 2), text, font=ImageFont.truetype("arial.ttf", font_size),
                           fill="black")
-
-            elif text_position == "Right":
+            else:
                 background = Image.new('RGBA', (img_w + text_w + 10, img_h), (255, 255, 255, 255))
                 background.paste(img, (0, 0))
                 draw = ImageDraw.Draw(background)
@@ -903,10 +894,10 @@ class EditAgentDialog(QDialog):
 
         result = warning_msg.exec()
 
-        if result == QMessageBox.Yes:
+        if QMessageBox.Yes == result:
             self.done(1)  # Return 1 if the agent should be deleted
 
-        elif result == QMessageBox.No:
+        elif QMessageBox.No == result:
             return
 
 
@@ -915,7 +906,7 @@ class AdminManagement(QDialog):
         super().__init__()
 
         self.setWindowTitle("Admin Management")
-        self.agents = load_agents()
+        self.agents = load_agents(agent_names_only=False)
         print(self.agents)
         self.resize(600, 400)
         self.setContentsMargins(5, 5, 5, 5)
@@ -969,6 +960,8 @@ class AdminManagement(QDialog):
         return table_widget
 
     def populate_table_widget(self, table_widget, group):
+        print(self.agents)
+        print(group)
         agents = self.agents["Agents"][group]
         table_widget.setRowCount(len(agents))
         table_widget.setColumnCount(2)
@@ -1027,7 +1020,7 @@ class AdminManagement(QDialog):
 
         self.agent_name_input.clear()
 
-    def create_table_widget(self, group):
+    def create_widget_table(self, group):
         agents = self.agents["Agents"][group]
 
         table_widget = QTableWidget()
@@ -1239,8 +1232,8 @@ class RescanOrdersDialog(QDialog):
 
             # If the service order is in the database and not checked out
             if existing_service_order:
-                print(existing_service_order[0][-6] )
-                if existing_service_order[0][-6] == "NO":
+                print(existing_service_order[0][-7])
+                if existing_service_order[0][-7] == "NO":
                     # Display the location dialog
                     location_dialog = LocationDialog(self.db, existing_service_order[0][1])
                     if location_dialog.exec_():
@@ -1734,13 +1727,14 @@ class ServiceOrderEditorDialog(QDialog):
 
     def load_res_codes_from_log(self):
         service_order_data = self.db.select_service_order(self.service_order_data[0])
+        res_codes = "None" if service_order_data[0][13] is None else eval(service_order_data[0][13])
+        res_codes_str = ", ".join(res_codes) if res_codes is not None else "None"
 
-        res_codes = service_order_data[0][13]
         bop_time = service_order_data[0][14]
         fop_time = service_order_data[0][15]
         total_time = service_order_data[0][16]
 
-        self.res_code_value.setText(res_codes)
+        self.res_code_value.setText(res_codes_str)
         self.bop_time_value.setText(str(bop_time))
         self.fop_value.setText(str(fop_time))
         self.total_time_value.setText(str(total_time))
@@ -1791,15 +1785,20 @@ class ServiceOrderEditorDialog(QDialog):
 
         if result == QDialog.Accepted:
             selected_res_codes = res_code_management_dialog.get_selected_res_codes()
-            self.update_res_codes(selected_res_codes)
+            self.update_res_codes()
 
     def update_res_codes(self):
+        if self.editing_by != self.closed_by_input.currentText():
+            QMessageBox.warning(self, "Permission Denied",
+                                "Only the agent who closed the service order can add res codes.")
+            return
         res_code_dialog = ResCodeManagementDialog(self.res_code_data)
         result = res_code_dialog.exec()
 
         if result == QDialog.Accepted:
             selected_res_codes = res_code_dialog.get_selected_res_codes()
             selected_res_codes_str = ', '.join(selected_res_codes)
+
             self.res_code_value.setText(selected_res_codes_str)
 
             # Calculate the total BOP and FOP times
@@ -2185,20 +2184,34 @@ class CommentsDialog(QDialog):
         super().__init__()
         self.resize(400, 200)
         self.setContentsMargins(5, 5, 5, 5)
-
+        self.status = status
         self.setWindowTitle("Enter Comments")
         layout = QVBoxLayout()
         self.label = QLabel("Comments (minimum 10 characters):")
+
+        # Add Payment Required checkbox
+        self.payment_required_checkbox = QCheckBox("Payment Required")
         self.comments_input = QLineEdit()
         self.submit_button = QPushButton("Submit")
         layout.addWidget(self.label)
         layout.addWidget(self.comments_input)
+        layout.addWidget(self.payment_required_checkbox)
         layout.addWidget(self.submit_button)
         self.setLayout(layout)
-        if status == "YELLOW":
-            self.submit_button.clicked.connect(self.validate_comments)
+        self.submit_button.clicked.connect(self.validate_comments)
+
+    def validate_comments(self):
+
+        # Check if the status is Green and the Payment Required checkbox is checked
+        if self.status == "GREEN" and self.payment_required_checkbox.isChecked():
+            condition = len(self.comments_input.text()) >= 10
+
+        elif self.status == "YELLOW":
+            condition = self.status == "YELLOW" and len(self.comments_input.text()) >= 10
         else:
-            self.submit_button.clicked.connect(self.accept)
+            condition = True
 
-
-
+        if condition:
+            self.accept()
+        else:
+            QMessageBox.warning(self, "Warning", "Comments must be at provided! (at least 10 characters long)")

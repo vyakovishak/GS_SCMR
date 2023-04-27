@@ -3,8 +3,8 @@ import json
 from PySide6.QtGui import QScreen
 
 
-def load_agents(hours_type="weekly", agent_names_only=True):
-    with open("agents.json") as f:
+def load_agents(hours_type=None, agent_names_only=True):
+    with open("Agents.json") as f:
         data = json.load(f)
 
     if agent_names_only:
@@ -13,7 +13,7 @@ def load_agents(hours_type="weekly", agent_names_only=True):
             for agent in region.keys():
                 agent_names.append(agent)
         return agent_names
-    else:
+    elif hours_type is not None:
         agent_hours = {}
         for region in data["Agents"].values():
             for agent, hours in region.items():
@@ -24,7 +24,8 @@ def load_agents(hours_type="weekly", agent_names_only=True):
                 else:
                     raise ValueError("Invalid hours_type. Accepted values are 'weekly' or 'monthly'.")
         return agent_hours
-
+    else:
+        return data
 
 
 def get_res_code():

@@ -64,7 +64,8 @@ class ServiceOrderDB:
                 ResCode  VARCHAR(255) DEFAULT 'None',
                 BOPTime  VINT DEFAULT '0',
                 FOPTime  INT DEFAULT '0',
-                TotalTime  INT DEFAULT '0'
+                TotalTime  INT DEFAULT '0',
+                PaymentStatus VARCHAR(255) DEFAULT 'YES'
             );"""
 
         self.execute(sql, commit=True)
@@ -280,7 +281,7 @@ class ServiceOrderDB:
                          "FOP_time": FOPTime,
                          "Total_time": TotalTime}
         }
-        self.log_update("Updated Location",
+        self.log_update("Res Codes Updates",
                         ServiceOrder=so,
                         operator=operator,
                         before=before,

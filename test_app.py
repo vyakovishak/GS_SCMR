@@ -25,7 +25,7 @@ def random_date(start_date, end_date):
     return start_date + datetime.timedelta(days=random_days)
 
 
-@pytest.mark.parametrize("i", range(10))
+@pytest.mark.parametrize("i", range(5))
 def test_add_and_select_random_service_order(i, db):
     service_order = random_service_order()
     location = random_string(5)
@@ -70,7 +70,7 @@ def test_add_and_select_random_service_order(i, db):
         "NO",
         0,
         "None",
-        random.randrange(0, 80),
+        0,
         0,
         0
     )

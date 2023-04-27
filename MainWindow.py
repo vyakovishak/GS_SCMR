@@ -308,8 +308,11 @@ class MainWin(QMainWindow):
                     if status_dialog.exec_():
                         status = status_dialog.status
                         comments_dialog = CommentsDialog(status)
+
                         if comments_dialog.exec_():
                             comments = comments_dialog.comments_input.text()
+                            paymentStatus = comments_dialog.payment_required_checkbox.isChecked()
+
                         else:
                             return
 

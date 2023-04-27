@@ -2,11 +2,11 @@
   "Agents": {
     "ARA": {
       "DPP": {
-        "Weekly": 37,
+        "Weekly": 10,
         "Monthly": 120
       },
       "JH": {
-        "Weekly": 39,
+        "Weekly": 10,
         "Monthly": 130
       },
       "TC": {
@@ -16,15 +16,15 @@
     },
     "CA": {
       "VY": {
-        "Weekly": 38,
+        "Weekly": 10,
         "Monthly": 125
       },
       "UB": {
-        "Weekly": 36,
+        "Weekly": 10,
         "Monthly": 125
       },
       "MA": {
-        "Weekly": 35,
+        "Weekly": 10,
         "Monthly": 120
       }
     }
