@@ -4,7 +4,7 @@ from typing import Any
 from functools import partial
 from datetime import date, timedelta
 from datetime import datetime
-# 1.1.1
+# 1.1.2
 import np
 import pyqtgraph as pg
 from PySide6.QtCharts import QValueAxis, QBarCategoryAxis, QChart, QBarSeries, QBarSet, QChartView, QLineSeries, \
