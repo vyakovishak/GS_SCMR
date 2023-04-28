@@ -267,8 +267,8 @@ class MainWin(QMainWindow):
         existing_service_order = self.db.select_unit(ServiceOrder=scanned_input)
         if len(existing_service_order) != 0:
             # Check if the service order is checked out
-            checked_out = existing_service_order[0][-7]
-            deleted = existing_service_order[0][-6]
+            checked_out = existing_service_order[0][-8]
+            deleted = existing_service_order[0][-7]
             print(checked_out)
             print(deleted)
             if existing_service_order and checked_out != "NO" or deleted != "NO":
@@ -276,7 +276,7 @@ class MainWin(QMainWindow):
                 service_order_dialog.exec_()
                 return
             else:
-                operator_dialog = OperatorDialog(location=existing_service_order[0][1])
+                operator_dialog = OperatorDialog(location=existing_service_order[0][1], payment=existing_service_order[0][-1])
                 if operator_dialog.exec_():
                     check_out_by = operator_dialog.get_operator()
                     if check_out_by != "YES":
@@ -315,6 +315,10 @@ class MainWin(QMainWindow):
 
                         else:
                             return
+                        if paymentStatus:
+                            paymentStatus = "Yes"
+                        else:
+                            paymentStatus = "No"
 
                         self.db.add_service_order(
                             ServiceOrder=scanned_input,
@@ -322,7 +326,8 @@ class MainWin(QMainWindow):
                             CompletionDate=datetime.datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
                             ClosedBy=close_by,
                             Status=status,
-                            Comments=comments
+                            Comments=comments,
+                            Payment=paymentStatus
                         )
 
                         # Update the table

@@ -65,7 +65,7 @@ class ServiceOrderDB:
                 BOPTime  VINT DEFAULT '0',
                 FOPTime  INT DEFAULT '0',
                 TotalTime  INT DEFAULT '0',
-                PaymentStatus VARCHAR(255) DEFAULT 'YES'
+                PaymentStatus VARCHAR(255) DEFAULT 'NO'
             );"""
 
         self.execute(sql, commit=True)
@@ -77,6 +77,7 @@ class ServiceOrderDB:
                           ClosedBy: str,
                           Status: str,
                           Comments: str,
+                          Payment: str
                           ):
 
         after = {
@@ -85,7 +86,8 @@ class ServiceOrderDB:
             "CompletionDate": CompletionDate,
             "ClosedBy": ClosedBy,
             "Status": Status,
-            "Comments": Comments
+            "Comments": Comments,
+            "PaymentStatus":Payment
         }
 
         self.log_update("Add Service Order", operator=ClosedBy, ServiceOrder=ServiceOrder, before={}, after=after)
@@ -95,7 +97,7 @@ class ServiceOrderDB:
         CheckOutBy = ''
         CheckOutDate = ''
         sql_command = "INSERT OR IGNORE INTO ServiceOrders(ServiceOrder, Location, CompletionDate, ClosedBy, Status, " \
-                      "Comments, LastUpdated, UpdatedBy, CheckOutBy, CheckOutDate) VALUES(?,?,?,?,?,?,?,?,?,?)"
+                      "Comments, LastUpdated, UpdatedBy, CheckOutBy, CheckOutDate, PaymentStatus) VALUES(?,?,?,?,?,?,?,?,?,?,?)"
 
         parameters = (ServiceOrder,
                       Location,
@@ -106,7 +108,8 @@ class ServiceOrderDB:
                       LastUpdated,
                       UpdatedBy,
                       CheckOutBy,
-                      CheckOutDate
+                      CheckOutDate,
+                      Payment
                       )
 
         self.execute(sql_command, parameters=parameters, commit=True)

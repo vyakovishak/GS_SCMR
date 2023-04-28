@@ -134,6 +134,10 @@ class StatsDialog(QDialog):
         self.checkout_units_filter_btn.clicked.connect(lambda: self.show_filters_dialog("check_out_units"))
         check_out_layout.addWidget(self.checkout_units_filter_btn)
 
+        self.checkout_units_filter_btn = QPushButton("Filters")
+        self.checkout_units_filter_btn.clicked.connect(lambda: self.show_filters_dialog("utilization"))
+        utilization_layout.addWidget(self.checkout_units_filter_btn)
+
         self.setLayout(main_layout)
 
     def get_utilization_data(self):
@@ -258,30 +262,6 @@ class StatsDialog(QDialog):
         chart.legend().setAlignment(Qt.AlignBottom)
 
         return chart
-
-    def get_dummy_data(self):
-        return {
-            'JMM': {
-                '2023-04-20': 95,
-                '2023-04-21': 80,
-                '2023-04-22': 70,
-            },
-            'MM': {
-                '2023-04-20': 107,
-                '2023-04-21': 90,
-                '2023-04-22': 60,
-            },
-            'DDP': {
-                '2023-04-20': 0,
-                '2023-04-21': 20,
-                '2023-04-22': 40,
-            },
-            'DICK': {
-                '2023-04-20': 18,
-                '2023-04-21': 30,
-                '2023-04-22': 50,
-            }
-        }
 
     @staticmethod
     def generate_line_chart(data, title, x_name, y_name):
@@ -2096,7 +2076,7 @@ class CloseByDialog(QDialog):
 
 # Define a QDialog for selecting an operator
 class OperatorDialog(QDialog):
-    def __init__(self, location=None):
+    def __init__(self, location=None, payment=None):
         super().__init__()
         self.agents = load_agents(agent_names_only=True)
 
@@ -2108,7 +2088,17 @@ class OperatorDialog(QDialog):
         # Add location label when location is not None
         if location is not None:
             location_label = QLabel(f"Current Location: {location}")
+            location_label.setAlignment(Qt.AlignCenter)
+            location_label.setStyleSheet("font-size: 14pt;")
             layout.addWidget(location_label)
+
+        # Add payment label when payment is not None
+        if payment == "Yes":
+            payment_label = QLabel(f"Payment Required")
+            payment_label.setAlignment(Qt.AlignCenter)
+            payment_label.setAlignment(Qt.AlignCenter)
+            payment_label.setStyleSheet("color: red; font-size: 14pt;")
+            layout.addWidget(payment_label)
 
         grid_layout = QGridLayout()
         self.button_group = QButtonGroup()
@@ -2144,6 +2134,7 @@ class OperatorDialog(QDialog):
 
     def get_operator(self):
         return self.selected_operator
+
 
 
 # Define a QDialog for selecting a service order status
