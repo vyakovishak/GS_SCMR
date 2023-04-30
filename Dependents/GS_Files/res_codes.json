@@ -13,7 +13,7 @@
     "ASCR": {
       "rescode": "ASCR",
       "description": "Apple Display Repair",
-      "sku": "None",
+      "sku": "None",  
       "price": "None",
       "fop": "25",
       "bop": "30",
