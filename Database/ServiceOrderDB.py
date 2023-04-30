@@ -1,26 +1,19 @@
-# ServiceOrderDB.py
+# ---- Start for ServiceOrderDB.py ---- #
 
 import datetime
+
 import json
 import sqlite3
 import os
 
 
 class ServiceOrderDB:
-    def __init__(self, path_to_db="ServiceOrders.db", status_bar=None):
-        """
-            Constructor for the ServiceOrderDB class.
-            :param path_to_db: Path to the SQLite database file.
-            :param status_bar: A reference to a QStatusBar widget for displaying status messages.
-        """
+    def __init__(self, path_to_db="./Database/ServiceOrders.db", status_bar=None):
         self.path_to_db = path_to_db
         self.status_bar = status_bar
 
     @property
     def connection(self):
-        """
-            Property that returns a connection to the SQLite database.
-        """
         return sqlite3.connect(self.path_to_db)
 
     def execute(self, sql: str, parameters: tuple = None, fetchone=False, fetchall=False, commit=False):
@@ -28,7 +21,6 @@ class ServiceOrderDB:
             parameters = tuple()
         connection = self.connection
         cursor = connection.cursor()
-        #connection.set_trace_callback(logger)
         cursor.execute(sql, parameters)
 
         data = None
@@ -43,9 +35,6 @@ class ServiceOrderDB:
         return data
 
     def create_table_users(self):
-        """
-            Creates the "ServiceOrders" table in the SQLite database if it does not already exist.
-        """
         sql = """
                 CREATE TABLE IF NOT EXISTS ServiceOrders (
                 ServiceOrder VARCHAR(255) PRIMARY KEY,
@@ -133,7 +122,6 @@ class ServiceOrderDB:
 
         return self.execute(sql, parameters=(start_date, end_date), fetchall=True)
 
-    # Selects all service orders that are not checked out
     def select_service_order(self, so):
         sql_command = "SELECT * FROM ServiceOrders WHERE ServiceOrder=?"
         return self.execute(sql_command, parameters=(so,), fetchall=True)
@@ -146,7 +134,6 @@ class ServiceOrderDB:
         sql_command = "SELECT * FROM ServiceOrders WHERE CheckedOut='NO' AND Scanned=0 AND CFI='NO'"
         return self.execute(sql_command, fetchall=True)
 
-    # Updates the check-out operator for a given service order
     def update_checkout_info(self, status, timestamp, operator, so):
         current_data = self.select_unit(column='CheckedOut, CheckoutDate, CheckOutBy', ServiceOrder=so)  # [(0, '', '')]
 
@@ -196,18 +183,12 @@ class ServiceOrderDB:
         sql_command = "UPDATE ServiceOrders SET UpdatedBy=? WHERE ServiceOrder=?"
         return self.execute(sql_command, parameters=(updated_by, so), commit=True)
 
-    # Updates the check-out date for a given service order
     def update_check_out_date(self, check_out_date, so, operator):
         current_data = self.select_unit(column='CheckOutDate', ServiceOrder=so)
         self.log_update("Updated Check Out Date", ServiceOrder=so, operator=operator, before=current_data,
                         after=check_out_date)
         sql_command = "UPDATE ServiceOrders SET CheckOutDate=? WHERE ServiceOrder=?"
         return self.execute(sql_command, parameters=(check_out_date, so), commit=True)
-
-    # Selects all service orders in the database
-    def select_all_service_orders(self):
-        sql_command = "SELECT * FROM ServiceOrders"
-        return self.execute(sql_command, fetchall=True)
 
     def select_all_service_orders_not_deleted(self):
         sql_command = "SELECT * FROM ServiceOrders WHERE CFI='NO'"
@@ -219,7 +200,6 @@ class ServiceOrderDB:
         result = self.execute(sql_command, parameters=(location,), fetchall=True)
         return len(result) > 0
 
-    # Updates a service order with the given parameters
     def update_service_order(self, ServiceOrder: int, operator, before, after, log=True):
         sql_command = f"UPDATE ServiceOrders SET "
         parameters = []
@@ -253,21 +233,6 @@ class ServiceOrderDB:
         sql_command = "UPDATE ServiceOrders SET DATE(CompletionDate)=? WHERE ServiceOrder=?"
         return self.execute(sql_command, parameters=(completion_date, so), commit=True)
 
-    def update_closed_by(self, closed_by, so, operator):
-        current_data = self.select_unit(column='ClosedBy', ServiceOrder=so)
-        self.log_update("Updated Location", ServiceOrder=so, operator=operator, before=current_data, after=closed_by)
-        sql_command = "UPDATE ServiceOrders SET ClosedBy=? WHERE ServiceOrder=?"
-        return self.execute(sql_command, parameters=(closed_by, so), commit=True)
-
-    def update_status(self, status, so, operator):
-        current_data = self.select_unit(column='Status', ServiceOrder=so)
-        self.log_update("Updated Location",
-                        ServiceOrder=so,
-                        operator=operator,
-                        before=current_data,
-                        after=status)
-        sql_command = "UPDATE ServiceOrders SET Status=? WHERE ServiceOrder=?"
-        return self.execute(sql_command, parameters=(status, so), commit=True)
 
     def update_res_codes(self, res_code_data, so, operator):
         ResCode = self.select_unit(column='ResCode', ServiceOrder=so)
@@ -302,28 +267,8 @@ class ServiceOrderDB:
         sql_command = "UPDATE ServiceOrders SET Comments=? WHERE ServiceOrder=?"
         return self.execute(sql_command, parameters=(comments, so), commit=True)
 
-    def update_status_updated(self, last_updated, so, operator):
-        current_data = self.select_unit(column='Status', ServiceOrder=so)
-        self.log_update("Updated Location",
-                        ServiceOrder=so,
-                        operator=operator,
-                        before=current_data,
-                        after=last_updated)
-        sql_command = "UPDATE ServiceOrders SET Status=? WHERE ServiceOrder=?"
-        return self.execute(sql_command, parameters=(last_updated, so), commit=True)
-
-    def update_checked_out(self, checked_out, so, operator):
-        current_data = self.select_unit(column='CheckedOut', ServiceOrder=so)
-        self.log_update("Checkout",
-                        ServiceOrder=so,
-                        operator=operator,
-                        before=current_data,
-                        after=checked_out)
-        sql_command = "UPDATE ServiceOrders SET CheckedOut=? WHERE ServiceOrder=?"
-        return self.execute(sql_command, parameters=(checked_out, so), commit=True)
 
     def get_service_orders_by_last_digits(self, last_digits: str):
-
         sql_command = f"SELECT * FROM ServiceOrders WHERE ServiceOrder LIKE ?"
         return self.execute(sql_command, parameters=('%' + last_digits,), fetchall=True)
 
@@ -364,7 +309,7 @@ class ServiceOrderDB:
             }
             log_entry["changes"][key] = change
 
-        log_filename = "update_log.json"
+        log_filename = "./Logs/update_log.json"
 
         if os.path.exists(log_filename):
             with open(log_filename, "r") as log_file:
@@ -387,7 +332,6 @@ class ServiceOrderDB:
         sql_command += " AND ".join([
             f" {item} =?" for item in parameters
         ])
-
         return sql_command, tuple(parameters.values())
 
-
+# ---- End for ServiceOrderDB.py ---- #

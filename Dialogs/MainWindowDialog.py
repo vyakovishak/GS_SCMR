@@ -1,23 +1,32 @@
-# MainWindow.py
-from functools import partial
+# ---- Stat for MainWindowDialog.py ---- #
+
 import re
 import datetime
-import json
-from PySide6.QtWidgets import QWidget, QMainWindow, QApplication, QTableWidget, QTableWidgetItem, QVBoxLayout, \
-    QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget, QCalendarWidget, \
-    QGroupBox, QGridLayout, QCheckBox, \
-    QComboBox, QDialogButtonBox, QMenu
+from PySide6.QtWidgets import QWidget, QMainWindow, QVBoxLayout, \
+    QLineEdit, QPushButton, QMessageBox, QHBoxLayout, QStatusBar, QDialog, QLabel, QListWidget, QDialogButtonBox
 from PySide6.QtGui import QIcon, QPixmap, QAction
-from PySide6.QtCore import Qt, QTimer, Signal
-from DialogsWindow import LocationDialog, OperatorDialog, StatusDialog, CommentsDialog, CalendarDialog, \
-    load_agents, ServiceOrderView, RescanOrdersDialog, AdminManagement, AdminLoginDialog, AboutDialog, TutorialDialog, \
-    QRCodeGeneratorDialog, LocationWarningDialog, StatsDialog
-from ServiceOrderDB import ServiceOrderDB
-from TableWidget import SCMRTable
-from utils import load_agents
+from PySide6.QtCore import Qt, Signal
+from Dialogs.AboutDialog import AboutDialog
+from Dialogs.AdminDialog import AdminLoginDialog, AdminManagement
+from Dialogs.CalendarDialog import CalendarDialog
+from Dialogs.CommentsDialog import CommentsDialog
+from Dialogs.DialogHelper import LocationWarningDialog
+from Dialogs.LocationDialog import LocationDialog
+from Dialogs.OperatorDialog import OperatorDialog
+from Dialogs.QRCodeGeneratorDialog import QRCodeGeneratorDialog
+from Dialogs.RescanOrdersDialog import RescanOrdersDialog
+from Database.ServiceOrderDB import ServiceOrderDB
+from Dialogs.ServiceOrderViewDialog import ServiceOrderView
+from Dialogs.StatsDialog import StatsDialog
+from Dialogs.StatusDialog import StatusDialog
+from Dialogs.TutorialDialog import TutorialDialog
+from Utilities.UI import override_ui_elements
+from Widgets.TableWidget import SCMRTable
+from Utilities.utils import load_agents
 
 
 # Define the main window class
+
 class MainWin(QMainWindow):
     # Initialize the window
     refresh_main_table_signal = Signal(str)
@@ -49,7 +58,7 @@ class MainWin(QMainWindow):
         self.location_dialog.location_warning.connect(self.show_location_warning)
 
         # Create an icon button for displaying the calendar dialog
-        calendar_icon = QIcon("calendar_icon.png")
+        calendar_icon = QIcon("./Images/calendar_icon.png")
         self.calendar_button = QPushButton(calendar_icon, "")
 
         # Create a rescan button
@@ -345,3 +354,5 @@ class MainWin(QMainWindow):
             self.handle_scanner_input()
         else:
             return
+
+# ---- End for MainWindowDialog.py ---- #

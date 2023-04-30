@@ -1,10 +1,9 @@
 import random
 import string
-from app import MainWin, ServiceOrderDB
+from app import ServiceOrderDB
 import pytest
 import datetime
-import PySide6
-from utils import load_agents
+from Utilities.utils import load_agents
 
 @pytest.fixture
 def db():

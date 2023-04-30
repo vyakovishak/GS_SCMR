@@ -1,14 +1,16 @@
+#app.py
 from PySide6.QtWidgets import QApplication
 import sys
 from pathlib import Path
-from MainWindow import MainWin
-from DialogsWindow import WelcomeScreen
-from ServiceOrderDB import ServiceOrderDB
+
+from Dialogs.WelcomeScreen import WelcomeScreen
+from Dialogs.MainWindowDialog import MainWin
+
 
 
 def main():
     app = QApplication(sys.argv)
-    config_path = Path("config.ini")
+    config_path = Path("Dependents/config.ini")
     if not config_path.exists():
         welcome_dialog = WelcomeScreen()
         welcome_dialog.exec_()
@@ -21,3 +23,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+#End of app.py

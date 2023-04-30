@@ -1,10 +1,8 @@
-# utils.py
+# ---- start for utils.py ---- #
 import json
-from PySide6.QtGui import QScreen
-
 
 def load_agents(hours_type=None, agent_names_only=True):
-    with open("Agents.json") as f:
+    with open("./Dependents/GS_Files/Agents.json") as f:
         data = json.load(f)
 
     if agent_names_only:
@@ -29,6 +27,8 @@ def load_agents(hours_type=None, agent_names_only=True):
 
 
 def get_res_code():
-    with open("res_codes.json", "r") as res:
+    with open("./Dependents/GS_Files/res_codes.json", "r") as res:
         res_codes = json.load(res)
         return res_codes
+
+# ---- End for utils.py ---- #

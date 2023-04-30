@@ -1,13 +1,17 @@
-# TableWidget.py
+# ---- Start for TableWidget.py ---- #
 
 from PySide6 import QtWidgets
-from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QSizePolicy, QHeaderView, QDialog, QVBoxLayout, QLabel, \
-    QItemDelegate, QPushButton
-from PySide6.QtWidgets import QItemDelegate, QComboBox, QDialog, QVBoxLayout, QListWidget
-from DialogsWindow import OperatorDialog, ServiceOrderEditorDialog, ServiceOrderView
-from ServiceOrderDB import ServiceOrderDB
+from PySide6.QtWidgets import QTableWidget, QTableWidgetItem, QHeaderView, QLabel, \
+    QPushButton
+from PySide6.QtWidgets import QItemDelegate, QDialog, QVBoxLayout
+
+from Dialogs.OperatorDialog import OperatorDialog
+from Database.ServiceOrderDB import ServiceOrderDB
 import json
 from PySide6.QtCore import Qt
+
+from Dialogs.ServiceOrderEditorDialog import ServiceOrderEditorDialog
+from Dialogs.ServiceOrderViewDialog import ServiceOrderView
 
 
 class AlignCenterDelegate(QItemDelegate):
@@ -88,7 +92,7 @@ class ServiceOrderUpdatesLogTable(QTableWidget):
         self.init_table()
 
     def init_table(self):
-        log_filename = "update_log.json"
+        log_filename = "./Logs/update_log.json"
         with open(log_filename, "r") as log_file:
             data = json.load(log_file)
 
@@ -99,7 +103,7 @@ class ServiceOrderUpdatesLogTable(QTableWidget):
         self.setRowCount(len(updates))
         self.setHorizontalHeaderLabels(
             ["Timestamp", "Operation", "Agent", "Location", "Completion Date", "Closed By", "Status",
-             "Comments", "Updated By",  "Res Codes"])  # Add "FOB", "FOP", and "Res Codes" to the header labels
+             "Comments", "Updated By", "Res Codes"])  # Add "FOB", "FOP", and "Res Codes" to the header labels
         self.horizontalHeader().setStretchLastSection(True)
 
         for i, update in enumerate(sorted(updates, key=lambda x: x['timestamp'])):
@@ -189,3 +193,5 @@ class CalendarTable(QTableWidget):
         if service_data is not None:
             view_dialog = ServiceOrderView(service_data)
             view_dialog.exec_()
+
+# ---- End for TableWidget.py ---- #
